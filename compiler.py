@@ -1,5 +1,5 @@
 import sys
-import lexical_analyzer
+import lexical_analyzer as la
 import symbol_table
 
 if len(sys.argv) != 3:
@@ -26,11 +26,23 @@ symbol_table = symbol_table.Symbol_Table(reserved_words, basics)
 
 source_path = sys.argv[1]
 automata_path = sys.argv[2]
-lexical_analyzer = lexical_analyzer.Lexical_Analyzer(source_path, automata_path, symbol_table)
+lexical_analyzer = la.Lexical_Analyzer(source_path, automata_path, symbol_table)
 
 token = ''
+errors = []
 while token != ('$', ''):
-	token = lexical_analyzer.get_next_token()
+	try:
+		token = lexical_analyzer.get_next_token()
+	except la.InvalidSymbol as error:
+		errors.append(error)
+		continue
+
 	print(token)
-print('Symbol table:')
-print(symbol_table.symbols_list)
+
+if errors:
+	print('Lexical Analysis not successfull')
+	for error in errors:
+		print(error)
+else:
+	print('Symbol table:')
+	print(symbol_table.symbols_list)
