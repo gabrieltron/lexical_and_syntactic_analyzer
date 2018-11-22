@@ -1,0 +1,204 @@
+import grammar
+from pprint import pprint
+class Syntactic_Analyzer:
+
+    def __init__(self, grammar_path, symbol_table):
+        grammar_file = open(grammar_path, 'r')
+        grammar_description = grammar_file.read()
+        self.grammar = self.create_grammar(grammar_description)
+
+        self.create_first()
+        self.create_follow()
+        self.create_table()
+
+        self.symbol_table = symbol_table
+
+    def create_grammar(self, _input : str):
+        lines = _input.split('\n')
+        non_terminals = []
+        terminals = set()
+        productions = {}
+
+        for line in lines:
+            line = line.split('->')
+            head = line[0][:-1]
+            body = line[1][1:]
+
+            non_terminals.append(head)
+            productions[head] = body.split(' | ')
+
+        for body in productions.values():
+            for production in body:
+                symbols = production.split(' ')
+                for symbol in symbols:
+                    if symbol not in non_terminals:
+                        terminals.add(symbol)
+
+        start = non_terminals[0]
+        non_terminals = set(non_terminals)
+        return grammar.Grammar(non_terminals, terminals, start, productions)
+
+    def calculate_first(self, symbol, first):
+        first[symbol] = set()
+
+        body = self.grammar.p[symbol]
+        for production in body:
+
+            production_symbols = production.split()
+            episulon = True
+            for production_symbol in production_symbols:
+
+                if production_symbol in self.grammar.terminals or production_symbol == '&':
+                    first[symbol].add(production_symbol)
+                    episulon = False
+                    break
+                else:
+                    if production_symbol not in first:
+                        self.calculate_first(production_symbol, first)
+
+                    first[symbol] = first[symbol].union(first[production_symbol])
+
+                    if '&' not in first[production_symbol]:
+                        episulon = False
+                        break
+                    else:
+                        first[symbol].remove('&')
+
+            if episulon:
+                first[symbol].add('&')
+
+
+    def create_first(self):
+        first = {}
+        for symbol in self.grammar.non_terminals:
+            if symbol not in first:
+                self.calculate_first(symbol, first)
+        self.first = first
+
+    def create_follow(self):
+        follow = {}
+
+        for non_terminal in self.grammar.non_terminals:
+            follow[non_terminal] = set()
+
+        follow[self.grammar.s] = {'$'}
+
+        changed = True
+        while changed:
+            changed = False
+            for non_terminal in self.grammar.non_terminals:
+
+                for production in self.grammar.p[non_terminal]:
+
+                    production_symbols = production.split()
+                    for index, symbol in enumerate(production_symbols[:-1]):
+
+                        next_symbol = production_symbols[index+1]
+                        if symbol in self.grammar.terminals:
+                            continue
+
+                        elif next_symbol in self.grammar.terminals:
+                            if next_symbol not in follow[symbol]:
+                                follow[symbol].add(next_symbol)
+                                changed = True
+
+                        else:
+                            for f in self.first[next_symbol]:
+                                if f not in follow[symbol] and f != '&':
+                                    follow[symbol].add(f)
+                                    changed = True
+
+                for production in self.grammar.p[non_terminal]:
+                    head = non_terminal
+                    r_production_symbols = reversed(production.split())
+
+                    for symbol in r_production_symbols:
+                        if symbol in self.grammar.terminals:
+                            break
+                        else:
+                            for f in follow[head]:
+                                if f not in follow[symbol]:
+                                    follow[symbol].add(f)
+                                    changed = True
+
+        self.follow = follow
+
+    def is_terminal_origin(self, symbol, first_symbol):
+        if symbol == first_symbol:
+            return True
+        elif first_symbol in self.grammar.terminals:
+            return False
+
+        for production in self.grammar.p[first_symbol]:
+            production = production.split()
+            terminal_origin = self.is_terminal_origin(symbol, production[0])
+
+            if terminal_origin:
+                return True
+
+        return False
+
+    def create_table(self):
+        table = {}
+
+        for non_terminal in self.grammar.non_terminals:
+            table[non_terminal] = {}
+
+            for symbol in self.first[non_terminal]:
+                if symbol != '&':
+                    for production in self.grammar.p[non_terminal]:
+
+                        production = production.split()
+                        terminal_origin = self.is_terminal_origin(symbol, production[0])
+
+                        if terminal_origin:
+                            origin = ' '.join(production)
+                            break
+
+                    table[non_terminal][symbol] = origin
+
+                else:
+                    for follow_symbol in self.follow[non_terminal]:
+                        table[non_terminal][follow_symbol] = '&'
+
+        self.table = table
+
+    def parse_code(self, alex):
+        stack = ['$']
+        stack.append(self.grammar.s)
+        word = []
+
+        while stack:
+            if not word:
+                token = alex.get_next_token()
+                terminal = token[0]
+                word.append(terminal)
+
+            compare = stack.pop()
+
+            if compare == terminal:
+                word = word[1:]
+            else:
+                #print(compare)
+                if terminal in self.table[compare]:
+                    transition = self.table[compare][terminal]
+                    transition = list(reversed(transition.split()))
+
+                    if transition != ['&']:
+                        for symbol in transition:
+                            stack.append(symbol)
+
+                else:
+                    #print(compare)
+                    #print(terminal)
+                    #pprint(self.table)
+                    raise InvalidSyntax("Símbolo {} inesperado na linha {}.".format(terminal, alex.lines_analyzed))
+
+        if not stack and not word:
+            return True
+        else:
+            return False
+
+class InvalidSyntax(Exception):
+    pass
+

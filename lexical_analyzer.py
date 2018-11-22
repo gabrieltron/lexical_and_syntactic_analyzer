@@ -37,22 +37,20 @@ class Lexical_Analyzer():
         _automata = automata.Automata(states, alphabet, initial_state, final_states, transitions)
         return _automata
 
-    def process_line_break(self):
-        while self.source_code[0] == '\n':
-            self.lines_analyzed += 1
-            self.source_code = self.source_code[1:]
-
     def ignore_blanks(self):
         while self.source_code[0] == ' ' or self.source_code[0] == '\n' or self.source_code[0] == '\t': 
             if self.source_code[0] == '\n':
                 self.lines_analyzed += 1
             self.source_code = self.source_code[1:]
 
-    def get_next_token(self):
+    def get_next_token(self):        
         if len(self.source_code) == 0:
             return ('$', '')
         
         self.ignore_blanks()
+
+        if len(self.source_code) == 0:
+            return ('$', '')
 
         state, is_valid, symbols_read = self.automata.run(self.source_code)
         symbol_read = self.source_code[:symbols_read+1]
