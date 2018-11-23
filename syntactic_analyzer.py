@@ -1,5 +1,7 @@
 import grammar
+import lexical_analyzer as la
 from pprint import pprint
+
 class Syntactic_Analyzer:
 
     def __init__(self, grammar_path, symbol_table):
@@ -157,47 +159,75 @@ class Syntactic_Analyzer:
 
                     table[non_terminal][symbol] = origin
 
+
                 else:
                     for follow_symbol in self.follow[non_terminal]:
                         table[non_terminal][follow_symbol] = '&'
 
+            if '&' not in self.first[non_terminal]:
+                for follow_symbol in self.follow[non_terminal]:
+                    table[non_terminal][follow_symbol] = 'sync'
+
         self.table = table
+
+    def add_error(self, errors, symbol, line):
+        if symbol == '$':
+            error = InvalidSyntax("Unexpected EOF while parsing.")
+        else:
+            error = InvalidSyntax("Unexpected {} while parsing in line {}.".format(symbol, line))
+        errors.append(error)
 
     def parse_code(self, alex):
         stack = ['$']
         stack.append(self.grammar.s)
         word = []
+        errors = []
 
         while stack:
             if not word:
-                token = alex.get_next_token()
+                try:
+                    token = alex.get_next_token()
+                except la.InvalidSymbol as error:
+                    errors.append(error)
+                    continue
                 terminal = token[0]
                 word.append(terminal)
 
             compare = stack.pop()
-
+            
             if compare == terminal:
                 word = word[1:]
+
+            elif compare in self.grammar.terminals:
+                self.add_error(errors, terminal, alex.lines_analyzed)
+
             else:
-                #print(compare)
                 if terminal in self.table[compare]:
                     transition = self.table[compare][terminal]
-                    transition = list(reversed(transition.split()))
-
-                    if transition != ['&']:
-                        for symbol in transition:
-                            stack.append(symbol)
+                    if transition != 'sync':
+                        transition = list(reversed(transition.split()))
+    
+                        if transition != ['&']:
+                            for symbol in transition:
+                                stack.append(symbol)
+                    else:
+                        self.add_error(errors, terminal, alex.lines_analyzed)
+                        if len(stack) == 1:
+                            word = word[1:]
+                            stack.append(compare)  
 
                 else:
-                    #print(compare)
-                    #print(terminal)
-                    #pprint(self.table)
-                    raise InvalidSyntax("Símbolo {} inesperado na linha {}.".format(terminal, alex.lines_analyzed))
+                    self.add_error(errors, terminal, alex.lines_analyzed)
+                    word = word[1:]
+                    stack.append(compare)
 
-        if not stack and not word:
-            return True
-        else:
+        for error in errors:
+            print(error)
+        if errors:
             return False
+        else:
+            return True
+
 
 class InvalidSyntax(Exception):
     pass

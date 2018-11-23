@@ -57,7 +57,7 @@ class Lexical_Analyzer():
 
         if not is_valid:
             self.source_code = self.source_code[symbols_read+1:]
-            raise InvalidSymbol("Symbol in line {} is not present in the grammar.".format(self.lines_analyzed))
+            raise InvalidSymbol("Symbol {} in line {} is not present in the grammar.".format(symbol_read, self.lines_analyzed))
 
         if state == 's1' or state == 's2':
             if symbol_read in self.symbol_table.reserved_words:
