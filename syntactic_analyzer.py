@@ -1,6 +1,5 @@
 import grammar
 import lexical_analyzer as la
-from pprint import pprint
 
 class Syntactic_Analyzer:
 
@@ -112,7 +111,7 @@ class Syntactic_Analyzer:
 
                 for production in self.grammar.p[non_terminal]:
                     head = non_terminal
-                    r_production_symbols = reversed(production.split())
+                    r_production_symbols = list(reversed(production.split()))
 
                     for symbol in r_production_symbols:
                         if symbol in self.grammar.terminals:
@@ -122,6 +121,23 @@ class Syntactic_Analyzer:
                                 if f not in follow[symbol]:
                                     follow[symbol].add(f)
                                     changed = True
+                        if '&' not in self.first[symbol]:
+                            break
+
+                    for i,symbol in enumerate(r_production_symbols[:-1]):
+                        prev_symbol = r_production_symbols[i+1]
+
+                        if symbol in self.grammar.terminals or prev_symbol in self.grammar.terminals:
+                            continue
+                        elif '&' in self.first[symbol]:
+                            for f in follow[symbol]:
+                                if f not in follow[prev_symbol]:
+                                    follow[prev_symbol].add(f)
+                                    changed = True 
+
+
+
+
 
         self.follow = follow
 
@@ -197,6 +213,9 @@ class Syntactic_Analyzer:
             
             if compare == terminal:
                 word = word[1:]
+            elif compare == '$':
+                self.add_error(errors, terminal, alex.lines_analyzed)
+                word = word[:1]
 
             elif compare in self.grammar.terminals:
                 self.add_error(errors, terminal, alex.lines_analyzed)
