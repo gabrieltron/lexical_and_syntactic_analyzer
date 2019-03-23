@@ -59,7 +59,7 @@ class Lexical_Analyzer():
             self.source_code = self.source_code[symbols_read+1:]
             raise InvalidSymbol("Symbol {} in line {} is not present in the grammar.".format(symbol_read, self.lines_analyzed))
 
-        if state == 's1' or state == 's2':
+        if state == 'id':
             if symbol_read in self.symbol_table.reserved_words:
                 token = (symbol_read, '')
             elif symbol_read in self.symbol_table.basics:
@@ -68,13 +68,12 @@ class Lexical_Analyzer():
                 token = ('id', symbol_read)
                 self.symbol_table.symbols_list.append(token)
 
-        elif state == 'n1':
-            token = ('num', symbol_read)
+        elif state == 'int':
+            token = ('int', symbol_read)
             self.symbol_table.symbols_list.append(token)
 
-        elif state == 'n3':
-            token = ('real', symbol_read)
-            self.symbol_table.symbols_list.append(token)
+        elif state == 'string':
+            token = ('string', symbol_read)
 
         else:
             token = (symbol_read, '')
