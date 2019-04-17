@@ -1,0 +1,111 @@
+\documentclass[10pt]{beamer}
+
+\usetheme[progressbar=frametitle]{metropolis}
+\usepackage{appendixnumberbeamer}
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
+
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+
+\usepackage{xspace}
+\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+
+\title{INE5426 AL e AS1}
+% \subtitle{Subtítulo}
+% \date{\today}
+\date{30 de Abril de 2019}
+\author{\textbf{João Gabriel Trombeta}  \\
+        \textbf{Mathias Olivion Reolon} \\
+        \textbf{Otto Menegasso Pires}   \\
+        \textbf{Wagner Braga dos Santos}
+        }
+\institute{Universidade Federal de Santa Catarina - UFSC}
+% \titlegraphic{\hfill\includegraphics[height=1.5cm]{logo.pdf}}
+
+\begin{document}
+
+\begin{frame}
+    \maketitle
+\end{frame}
+
+\begin{frame}{AS1 Questão 1}
+    A gramática X++ é recursiva à esquerda?
+
+    \textbf{R:} Não. A definição de uma produção com recursão à esquerda é:
+    "expr -> expr + term", e a gramática do X++ não apresenta nenhuma produção
+    desse tipo.
+
+   \end{frame}
+
+\begin{frame}{AS1 Questão 1}
+
+    Nota-se de maneira trivial que as produções CLASSDECL, CLASSBODY, VARDECL,
+    CONSTRUCTDECL, METHODDECL, METHODBODY, PARAMLIST, PRINTSTAT, READSTAT,
+    RETURNSTAT, SUPERSTAT, IFSTAT, FORSTAT, LVALUE, ALOCEXPRESSION, FACTOR não
+    são recursivas à esquerda porque em todos os casos a produção mais a
+    esquerda é um terminal.
+
+    Para os outros casos é necessário avaliar se não existem recursões indiretas.
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 1}
+
+    PROGRAM não é recursivo pois sua produção leva para CLASSLIST, que leva
+    para CLASSDECL, que não é recursiva.
+
+    ATRIBSTAT não é recursivo pois sua produção leva para LVALUE, que não é
+    recursiva.
+
+    STATEMENT não é recursivo pois suas produções levam para não-terminais que
+    também não possuem recursão.
+
+    STATLIST não é recursivo pois sua produção leva para STATEMENT, que não é
+    recursivo.
+
+    EXPRESSION não é recursivo pois sua produção leva para NUMEXPRESSION, que
+    leva para TERM, que leva para UNARYEXPR, que leva para FACTOR, que produz
+    (EXPRESSION), o que não caracteriza como recursão já que existe o terminal
+    ( antes de EXPRESSION.
+
+    ARGLIST não é recursivo pois sua produção leva para EXPRESSION.
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 2}
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 3}
+    A gramática X++ é LL(3). Por quê?
+
+    \textbf{R:} Por causa das produções VARDECL e METHODDECL.
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 3}
+    VARDECL: Essa produção se inicia com o tipo da variável (int/string/ident).
+    Depois tem um identificador que representa o nome da variável e depois
+    pode-se ter ou um '[' ou uma ',' ou um ';'. Dependendo do terceiro símbolo
+    pode-se ter um ']', completando o '[]', um identificador, declarando uma
+    nova variável de mesmo tipo, ou o fim da produção.
+
+    METHODDECL: inicia-se com o tipo do método (int/string/ident), depois pode
+    ou não vir uma sequência de '[]' e depois vem o nome do método, em forma de
+    ident e finalmente o corpo do método que começa com um '('.
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 3}
+
+    Por causa disso, para se ter certeza que a produção corresponde ou não a um
+    VARDECL é preciso olhar 3 símbolos para frente. Por exemplo: Caso os
+    primeiros dois símbolos sejam ``int ident'' não é possível saber se é um
+    método com o nome ident ou uma variável. Mas ao olhar o terceiro símbolo se
+    for ou '[', ou ',', ou ';' então pode-se concluir que se trata de uma
+    variável.
+
+\end{frame}
+
+\end{document}

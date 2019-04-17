@@ -1,0 +1,18 @@
+1 - A Gramática X++ é recursiva à esquerda?
+    Não. A definição de uma recursão à esquerda é: "expr -> expr + term", e a
+    gramática do X++ não apresenta nenhuma produção desse tipo. Por exemplo:
+
+    Nota-se de maneira trivial que as produções CLASSDECL, CLASSBODY, VARDECL, CONSTRUCTDECL, METHODDECL, METHODBODY, PARAMLIST, PRINTSTAT, READSTAT, RETURNSTAT, SUPERSTAT, IFSTAT, FORSTAT, LVALUE, ALOCEXPRESSION, FACTOR não são recursivas à esquerda porque em todos os casos a produção mais a esquerda é um terminal.
+
+    Para os outros casos é necessário avaliar se não existem recursões indiretas.
+
+    PROGRAM não é recursivo pois sua produção leva para CLASSLIST, que leva para CLASSDECL, que não é recursiva.
+    ATRIBSTAT não é recursivo pois sua produção leva para LVALUE, que não é recursiva.
+    STATEMENT não é recursivo pois suas produções levam para não-terminais que também não possuem recursão.
+    STATLIST não é recursivo pois sua produção leva para STATEMENT, que não é recursivo.
+    EXPRESSION não é recursivo pois sua produção leva para NUMEXPRESSION, que leva para TERM, que leva para UNARYEXPR, que leva para FACTOR, que produz (EXPRESSION), o que não caracteriza como recursão já que existe o terminal ( antes de EXPRESSION.
+    ARGLIST não é recursivo pois sua produção leva para EXPRESSION.
+
+2 - A Gramática X++ está fatorada a esquerda? Se não, fatore.
+
+3 - A Gramática X++ é LL(3). Por que?
