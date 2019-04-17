@@ -63,17 +63,17 @@ class Lexical_Analyzer():
             if symbol_read in self.symbol_table.reserved_words:
                 token = (symbol_read, '')
             elif symbol_read in self.symbol_table.basics:
-                token = ('basic', symbol_read)
+                token = (symbol_read, '')
             else:
-                token = ('id', symbol_read)
+                token = ('ident', symbol_read)
                 self.symbol_table.symbols_list.append(token)
 
         elif state == 'int':
-            token = ('int', symbol_read)
+            token = ('int_constant', symbol_read)
             self.symbol_table.symbols_list.append(token)
 
         elif state == 'string':
-            token = ('string', symbol_read)
+            token = ('string_constant', symbol_read)
 
         else:
             token = (symbol_read, '')

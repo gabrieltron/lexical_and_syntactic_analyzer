@@ -1,5 +1,5 @@
 <program> -> <class_decl> | &
-<class_list> <class_decl> | &
+<class_list> -> <class_decl> | &
 <class_decl> -> class ident <extend> <class_body> <class_list>
 <extend> -> extends ident | &
 <class_body> -> { <class_list> <var_decls> <construct_decls> <method_decls> }

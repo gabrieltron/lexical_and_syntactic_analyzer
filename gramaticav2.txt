@@ -1,12 +1,15 @@
 <program> -> <class_decl> | &
-<class_list> <class_decl> | &
+<class_list> -> <class_decl> | &
 <class_decl> -> class ident <extend> <class_body> <class_list>
 <extend> -> extends ident | &
-<class_body> -> { <class_list> <var_decls> <construct_decls> <method_decls> }
+<class_body> -> { <class_list> <class_body2> }
+<class_body2> -> <type> <class_body3> | constructor <method_body> <construct_decls> <method_decls> | &
+<class_body3> -> ident <class_body4> | [ ] <vector> ident <method_body> <method_decls>
+<class_body4> -> <method_body> <method_decls> | <vector> <extra_var> ; <class_body2>
 <var_decls> -> <type> <var_decl> <var_decls> | &
 <var_decl> -> ident <vector> <extra_var>
 <extra_var> -> , ident <vector> | &
-<construct_decls> -> <construct_decl> <construct_decls | &
+<construct_decls> -> <construct_decl> <construct_decls> | &
 <method_decls> -> <method_decl> <method_decls> | &
 <var_or_atrib> -> <var_decl> | <atrib_stat>
 <type> -> <ctype> | ident

@@ -164,6 +164,7 @@ class Syntactic_Analyzer:
 
             for symbol in self.first[non_terminal]:
                 if symbol != '&':
+                    origin = ''
                     for production in self.grammar.p[non_terminal]:
 
                         production = production.split()
@@ -173,16 +174,22 @@ class Syntactic_Analyzer:
                             origin = ' '.join(production)
                             break
 
-                    table[non_terminal][symbol] = origin
-
-
+                    if origin:
+                        table[non_terminal][symbol] = origin
                 else:
                     for follow_symbol in self.follow[non_terminal]:
                         table[non_terminal][follow_symbol] = '&'
 
+            #for body in self.grammar.p[non_terminal]:
+            #    symbols = body.split()
+            #    for symbol in symbols:
+            #        if symbol in self.grammar.terminals and symbol not in table[non_terminal]:
+            #            table[non_terminal][symbol] = body
+
             if '&' not in self.first[non_terminal]:
                 for follow_symbol in self.follow[non_terminal]:
-                    table[non_terminal][follow_symbol] = 'sync'
+                    if follow_symbol not in table[non_terminal]:
+                        table[non_terminal][follow_symbol] = 'sync'
 
         self.table = table
 
@@ -210,6 +217,11 @@ class Syntactic_Analyzer:
                 word.append(terminal)
 
             compare = stack.pop()
+            print(terminal)
+            print(compare)
+            if compare in self.table:
+                print(self.table[compare])
+            print('---------')
             
             if compare == terminal:
                 word = word[1:]
