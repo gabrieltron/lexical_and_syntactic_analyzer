@@ -8,6 +8,8 @@
 \usepackage{booktabs}
 \usepackage[scale=2]{ccicons}
 
+\usepackage{graphicx}
+
 \usepackage{xspace}
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
 
@@ -105,6 +107,71 @@
     método com o nome ident ou uma variável. Mas ao olhar o terceiro símbolo se
     for ou '[', ou ',', ou ';' então pode-se concluir que se trata de uma
     variável.
+
+\end{frame}
+
+\begin{frame}{AL - AFD}
+
+    A análise é feita utilizando um autômato finito terminístico que reconhece
+    os padrões no código. O autômato é descrito em \texttt{automata.txt}, a 
+    primeira linha são os estados, a segunda os símbolos, a terceira o estado
+    inicial, a quarta o final, e as demais as transições, que devem obedecer o
+    padrão \texttt{estado -> destino símbolo}.
+
+    Para facilitar a implementação do lexema pertencente ao token
+    \texttt{string\_const}, caso o estado comece com o caracter \texttt{*} o
+    autômato irá permanecer no mesmo estado caso ele não possua uma transição
+    pelo símbolo lido, ao invés retornar um erro.
+
+\end{frame}
+
+\begin{frame}{AL - Descrição dos estados}
+
+    \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{automata_description.pdf}
+
+\end{frame}
+
+\begin{frame}{AL - \texttt{compiler.py}}
+
+    Instancia o analisador léxico com a descrição do autômato e pede o arquivo
+    a ser analisado. O analisador também recebe o conjunto de palavras que são
+    palavras reservadas e tipos básicos da linguagem. O analisador então é
+    utilizado para gerar todos os tokens.
+
+\end{frame}
+
+\begin{frame}{AL - \texttt{lexical\_analizer.py}}
+
+    O construtor abre o arquivo que descreve o AFD e cria o objeto Automata.
+    Ele também abre o código a ser lido e deixa como seu atributo.
+
+    Os tokens são gerados ao chamar \texttt{get\_next\_token}, cada chamada ele
+    retorna o próximo token e quando o código acabar ele retorna \texttt{\$}. O
+    método ignora brancos e espaçamentos e faz com que o autômato rode sobre o
+    arquivo que tem como atributo. Como retorno, a função \texttt{run} do
+    autômato informa o estado em que parou, se é de aceitação, e quantos
+    símbolosform lidos antes de parar nesse estado. Tendo a informação de
+    quantos símbolos foram lidos e o código, o analisador consegue ver o que
+    foi lido e cria o token apropriado, colocando-o na tabela de símbolos caso
+    necessário. Depois ele atualiza o código de forma a remover o que já foi
+    lido e retorna o token.
+
+\end{frame}
+
+\begin{frame}{AL - \texttt{automata.py}}
+
+    Representa o autômato finito. O método \texttt{run} recebe uma string de
+    entrada e roda o AFD sobre ela. Caso exista uma transição pelo símbolo lido
+    o autômato faz a transição e continua o processo até o momento em lê algo
+    inválido. Quando algo inválido é lido o AFD ignora essa leitura e retorna
+    o estado atual, se ele é final e quantos símbolos foram lidos. Isso
+    acontece porque, por exemplo, tomando a entrada \texttt{" ";}. \texttt{" "}
+    é uma entrada válida que leva o autômato pro estado de aceitação
+    \texttt{string}, mas quando o símbolo \texttt{;} for lido isso resultaria
+    em um erro, uma vez que do estado \texttt{string} não existe mais
+    transições. Então \texttt{;} é ignorado e o autômato retorna que leu uma
+    string. Quando o método for chamado novamente o AFD estará no estado
+    inicial e conseguirá reconhecer \texttt{;} como um padrão válido.
 
 \end{frame}
 

@@ -38,7 +38,11 @@ class Lexical_Analyzer():
         return _automata
 
     def ignore_blanks(self):
-        while self.source_code[0] == ' ' or self.source_code[0] == '\n' or self.source_code[0] == '\t': 
+        while self.source_code and (
+                self.source_code[0] == ' ' or
+                self.source_code[0] == '\n' or
+                self.source_code[0] == '\t'
+            ): 
             if self.source_code[0] == '\n':
                 self.lines_analyzed += 1
             self.source_code = self.source_code[1:]

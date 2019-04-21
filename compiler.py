@@ -1,12 +1,8 @@
 import sys
 import lexical_analyzer as la
 import symbol_table
-import syntactic_analyzer as sa
+#import syntactic_analyzer as sa
 from pprint import pprint
-
-if len(sys.argv) != 3:
-	print('Use: python3 compiler.py [source_code_path] [automata_path]')
-	sys.exit(0)
 
 reserved_words = {
 	'class',
@@ -30,10 +26,12 @@ basics = {
 
 symbol_table = symbol_table.Symbol_Table(reserved_words, basics)
 
-source_path = sys.argv[1]
-automata_path = sys.argv[2]
-#grammar_path = sys.argv[3]
+automata_path = sys.argv[1]
+source_path = input("Type file path\n")
 lexical_analyzer = la.Lexical_Analyzer(source_path, automata_path, symbol_table)
+
+#source_path = sys.argv[1]
+#grammar_path = sys.argv[3]
 #syntactic_analyzer = sa.Syntactic_Analyzer(grammar_path, symbol_table)
 
 #valid_word = syntactic_analyzer.parse_code(lexical_analyzer)
