@@ -37,7 +37,8 @@
 <stat_list> -> <statement> <stat_list> | &
 <lvalue> -> [ <expression> ] <lvalue> | . ident <arg_list?> <lvalue> | &
 <[expression]*> -> [ <expression> ] <[expression]*> | &
-<aloc_expr2> -> ident ( <arg_list> ) | <type> [ <expression> ] <[expression]*>
+<aloc_expr2> -> ident <aloc_expr3> | <ctype> [ <expression> ] <[expression]*> 
+<aloc_expr3> -> ( <arg_list> ) | [ <expression> ] <[expression]*> 
 <aloc_expression> -> new <aloc_expr2>
 <opt_expression> -> <rel_op> <num_expression> | &
 <expression> -> <num_expression> <opt_expression>
