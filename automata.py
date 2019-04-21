@@ -23,15 +23,27 @@ class Automata():
         current_state = self.start_state
         last_read = 0
         for index, symbol in enumerate(string):
-          # check if transition exists
-            if symbol not in self.alphabet:
-                break
+            # check if it's an exception state, that is,
+            # stay on the state unless seen a ginve symbol
+            if current_state[0] != '*':
+                # it's not, check if transition exists
+                if symbol not in self.alphabet:
+                    break
 
-            elif not self.transitions[current_state][symbol]:
-                break
+                elif not self.transitions[current_state][symbol]:
+                    break
+
+                next_state = self.transitions[current_state][symbol][0]
+            else:
+                # it is, check if should go to another state or stay
+                if (symbol in self.transitions[current_state] and
+                        self.transitions[current_state][symbol]):
+                    next_state = self.transitions[current_state][symbol][0]
+                else:
+                    next_state = current_state
 
             last_read = index
-            current_state = self.transitions[current_state][symbol][0]
+            current_state = next_state
         
         is_final = current_state in self.final_states
         return (current_state, is_final,last_read)
