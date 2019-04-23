@@ -78,6 +78,7 @@ class Lexical_Analyzer():
 
         elif state == 'string':
             token = ('string_constant', symbol_read)
+            self.symbol_table.symbols_list.append(token)
 
         else:
             token = (symbol_read, '')
