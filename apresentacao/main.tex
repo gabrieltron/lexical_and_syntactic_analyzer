@@ -79,7 +79,7 @@
     A Gramática X++ está fatorada a esquerda? Se não, fatore.
 
     \textbf{R:} Não, pois existem produções como ALOCEXPRESSION, que ao serem
-    expandidas geram coisas como 'new ident ( ARGLIST )' | 'new int ...' | 
+    expandidas geram coisas como 'new ident ( ARGLIST )' | 'new int ...' |
     'new string ...' | 'new ident ...'.
 
     Pode-se perceber que todas as transições a partir de ALOCEXPRESSION se
@@ -87,7 +87,7 @@
 \end{frame}
 
 \begin{frame}{AS1 Questão 2}
-    
+
     Fatoramos ALOCEXPRESSION gerando as seguintes produções:
 
     ALOCEXPRESSION -> new ALOCEXPRESSION2
@@ -97,6 +97,130 @@
 
     Desse modo, para cada produção, não existem duas transições que se iniciam
     com os mesmos terminais ou não terminais.
+
+\end{frame}
+
+\begin{frame}{AS1 Questão 2}
+
+    <program> -> <class\_decl> | \&
+
+    <class\_list> -> <class\_decl> | \&
+
+<class\_decl> -> class ident <extend> <class\_body> <class\_list>
+
+    <extend> -> extends ident | \&
+
+<class\_body> -> { <class\_list> <class\_body2> }
+
+    <class\_body2> -> <type> <class\_body3> | constructor <method\_body> <construct\_decls> <method\_decls> | \&
+
+<class\_body3> -> ident <class\_body4> | [ ] <vector> ident <method\_body> <method\_decls>
+
+<class\_body4> -> <method\_body> <method\_decls> | <vector> <extra\_var> ; <class\_body2>
+
+<var\_decls> -> <type> <var\_decl> <var\_decls> | \&
+
+<var\_decl> -> ident <vector> <extra\_var>
+
+\end{frame}
+\begin{frame}{AS1 Questão 2}
+
+<extra\_var> -> , ident <vector> | \&
+
+<construct\_decls> -> <construct\_decl> <construct\_decls> | \&
+
+<method\_decls> -> <method\_decl> <method\_decls> | \&
+
+<var\_or\_atrib> -> <var\_decl> | <atrib\_stat>
+
+<type> -> <ctype> | ident
+
+<ctype> -> int | string
+
+<mdm\_op> -> * | / | %
+
+<rel\_op> -> > | < | <= | >= | == | !=
+
+<pm\_op> -> + | -
+
+<pm\_op?> -> <pm\_op> | \&
+
+<vector> -> [ ] <vector> | \&
+
+<construct\_decl> -> constructor <method\_body>
+
+\end{frame}
+\begin{frame}{AS1 Questão 2}
+
+<method\_decl> -> <type> <vector> ident <method\_body>
+
+<method\_body> -> ( <param\_list> ) <statement>
+
+<param\_list> -> <type> ident <vector> <extra\_param> | \&
+
+<extra\_param> -> , <type> ident <vetor> <extra\_param> | \&
+
+<statement> -> <ctype> <var\_decl> ; | ident <var\_or\_atrib> ; | <print\_stat> | <read\_stat> | <if\_stat> | <for\_stat> | { <stat\_list> } | break ; | ;
+
+<read\_stat> -> read ident <lvalue>
+
+<print\_stat> -> print <expression>
+
+<atrib\_stat> -> <lvalue> = <expr\_or\_aloc>
+
+<expr\_or\_aloc> -> <expression> | <aloc\_expression>
+
+<expression?> -> <expression> | \&
+
+<return\_stat> -> return <expression?>
+
+\end{frame}
+\begin{frame}{AS1 Questão 2}
+
+<else> -> else <statement> | \&
+
+<if\_stat> -> if ( <expression> ) <statement> <else>
+
+<for\_stat> -> for ( <atrib\_stat?> ; <expression?> ; <atrib\_stat?> ) <statement>
+
+<stat\_list> -> <statement> <stat\_list> | \&
+
+<lvalue> -> [ <expression> ] <lvalue> | . ident <arg\_list?> <lvalue> | \&
+
+<[expression]*> -> [ <expression> ] <[expression]*> | \&
+
+<aloc\_expr2> -> ident <aloc\_expr3> | <ctype> [ <expression> ] <[expression]*>
+
+<aloc\_expr3> -> ( <arg\_list> ) | [ <expression> ] <[expression]*>
+
+<aloc\_expression> -> new <aloc\_expr2>
+
+<opt\_expression> -> <rel\_op> <num\_expression> | \&
+
+\end{frame}
+\begin{frame}{AS1 Questão 2}
+
+<expression> -> <num\_expression> <opt\_expression>
+
+<expression2> -> , <expression> <expression2> | \&
+
+<opt\_term> -> <pm\_op> <term> <opt\_term> | \&
+
+<num\_expression> -> <term> <opt\_term>
+
+<unary\_expr> -> <pm\_op?> <factor>
+
+<unary\_vazio> -> <mdm\_op> <unary\_expr> <unary\_vazio> | \&
+
+<term> -> <unary\_expr> <unary\_vazio>
+
+<factor> -> int-const | string-const | null | ident <lvalue> | ( <expression> )
+
+<arg\_list> -> <expression> <expression2> | \&
+
+<atrib\_stat?> -> <atrib\_stat> | \&
+
+<arg\_list?> -> ( <arg\_list> ) | \&
 
 \end{frame}
 
@@ -134,7 +258,7 @@
 \begin{frame}{AL - AFD}
 
     A análise é feita utilizando um autômato finito terminístico que reconhece
-    os padrões no código. O autômato é descrito em \texttt{automata.txt}, a 
+    os padrões no código. O autômato é descrito em \texttt{automata.txt}, a
     primeira linha são os estados, a segunda os símbolos, a terceira o estado
     inicial, a quarta o final, e as demais as transições, que devem obedecer o
     padrão \texttt{estado -> destino símbolo}.
