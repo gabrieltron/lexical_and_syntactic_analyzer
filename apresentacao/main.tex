@@ -76,6 +76,27 @@
 \end{frame}
 
 \begin{frame}{AS1 Questão 2}
+    A Gramática X++ está fatorada a esquerda? Se não, fatore.
+
+    \textbf{R:} Não, pois existem produções como ALOCEXPRESSION, que ao serem
+    expandidas geram coisas como 'new ident ( ARGLIST )' | 'new int ...' | 
+    'new string ...' | 'new ident ...'.
+
+    Pode-se perceber que todas as transições a partir de ALOCEXPRESSION se
+    iniciam com 'new', sendo que duas delas se iniciam com 'new ident'.
+\end{frame}
+
+\begin{frame}{AS1 Questão 2}
+    
+    Fatoramos ALOCEXPRESSION gerando as seguintes produções:
+
+    ALOCEXPRESSION -> new ALOCEXPRESSION2
+    ALOCEXPRESSION2 -> ident ALOCEXPRESSION3 | CTYPE [ EXPRESSION ] ([EXPRESSION])*
+    ALOCEXPRESSION3 -> ( ARGLIST ) | [ EXPRESSION ] ([EXPRESSION])*
+    CTYPE -> string | int
+
+    Desse modo, para cada produção, não existem duas transições que se iniciam
+    com os mesmos terminais ou não terminais.
 
 \end{frame}
 
