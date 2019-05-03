@@ -73,11 +73,11 @@ class Lexical_Analyzer():
                 self.symbol_table.symbols_list.append(token)
 
         elif state == 'int':
-            token = ('int_constant', symbol_read)
+            token = ('int-const', symbol_read)
             self.symbol_table.symbols_list.append(token)
 
         elif state == 'string':
-            token = ('string_constant', symbol_read)
+            token = ('string-const', symbol_read)
             self.symbol_table.symbols_list.append(token)
 
         else:

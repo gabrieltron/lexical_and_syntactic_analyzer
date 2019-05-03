@@ -141,18 +141,16 @@ class Syntactic_Analyzer:
 
         self.follow = follow
 
-    def is_terminal_origin(self, symbol, first_symbol):
-        if symbol == first_symbol:
-            return True
-        elif first_symbol in self.grammar.terminals:
-            return False
-
-        for production in self.grammar.p[first_symbol]:
-            production = production.split()
-            terminal_origin = self.is_terminal_origin(symbol, production[0])
-
-            if terminal_origin:
+    def is_terminal_origin(self, symbol, origin_production):
+        for production in origin_production:
+            if production in self.grammar.terminals:
+                if production == symbol:
+                    return True
+            elif symbol in self.first[production]:
                 return True
+            else:
+                if '&' not in self.first[production]:
+                    break
 
         return False
 
@@ -168,7 +166,7 @@ class Syntactic_Analyzer:
                     for production in self.grammar.p[non_terminal]:
 
                         production = production.split()
-                        terminal_origin = self.is_terminal_origin(symbol, production[0])
+                        terminal_origin = self.is_terminal_origin(symbol, production)
 
                         if terminal_origin:
                             origin = ' '.join(production)
