@@ -8,7 +8,7 @@
 <class_body4> -> <method_body> <method_decls> | <vector> <extra_var> ; <class_body2>
 <var_decls> -> <type> <var_decl> <var_decls> | &
 <var_decl> -> ident <vector> <extra_var>
-<extra_var> -> , ident <vector> | &
+<extra_var> -> , ident <vector> <extra_var> | &
 <construct_decls> -> <construct_decl> <construct_decls> | &
 <method_decls> -> <method_decl> <method_decls> | &
 <var_or_atrib> -> <var_decl> | <atrib_stat>
@@ -24,7 +24,7 @@
 <method_body> -> ( <param_list> ) <statement>
 <param_list> -> <type> ident <vector> <extra_param> | &
 <extra_param> -> , <type> ident <vetor> <extra_param> | &
-<statement> -> <ctype> <var_decl> ; | ident <var_or_atrib> ; | <print_stat> | <read_stat> | <if_stat> | <for_stat> | { <stat_list> } | break ; | ;
+<statement> -> <ctype> <var_decl> ; | ident <var_or_atrib> ; | <print_stat> ; | <read_stat> ; | <if_stat> | <for_stat> | <return_stat> ; | { <stat_list> } | break ; | ;
 <read_stat> -> read ident <lvalue>
 <print_stat> -> print <expression>
 <atrib_stat> -> <lvalue> = <expr_or_aloc>
@@ -50,5 +50,5 @@
 <term> -> <unary_expr> <unary_vazio>
 <factor> -> int-const | string-const | null | ident <lvalue> | ( <expression> )
 <arg_list> -> <expression> <expression2> | &
-<atrib_stat?> -> <atrib_stat> | &
+<atrib_stat?> -> ident <atrib_stat> | &
 <arg_list?> -> ( <arg_list> ) | &
