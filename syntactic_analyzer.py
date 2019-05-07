@@ -215,11 +215,11 @@ class Syntactic_Analyzer:
                 word.append(terminal)
 
             compare = stack.pop()
-            print(terminal)
-            print(compare)
-            if compare in self.table:
-                print(self.table[compare])
-            print('---------')
+            #print(terminal)
+            #print(compare)
+            #if compare in self.table:
+            #    print(self.table[compare])
+            #print('---------')
             
             if compare == terminal:
                 word = word[1:]
@@ -243,7 +243,10 @@ class Syntactic_Analyzer:
                         self.add_error(errors, terminal, alex.lines_analyzed)
                         if len(stack) == 1:
                             word = word[1:]
-                            stack.append(compare)  
+                            stack.append(compare)
+                elif terminal == '$':
+                    self.add_error(errors, terminal, alex.lines_analyzed)
+                    break
 
                 else:
                     self.add_error(errors, terminal, alex.lines_analyzed)

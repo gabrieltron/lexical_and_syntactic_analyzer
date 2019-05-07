@@ -35,9 +35,9 @@ syntactic_analyzer = sa.Syntactic_Analyzer(grammar_path, symbol_table)
 valid_word = syntactic_analyzer.parse_code(lexical_analyzer)
 
 if valid_word:
-	print('Word is valid')
+	print('Code is valid')
 else:
-	print('Word is invalid')
+	print('Code is invalid')
 
 
 #token = ''

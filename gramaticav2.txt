@@ -23,7 +23,7 @@
 <method_decl> -> <type> <vector> ident <method_body>
 <method_body> -> ( <param_list> ) <statement>
 <param_list> -> <type> ident <vector> <extra_param> | &
-<extra_param> -> , <type> ident <vetor> <extra_param> | &
+<extra_param> -> , <type> ident <vector> <extra_param> | &
 <statement> -> <ctype> <var_decl> ; | ident <var_or_atrib> ; | <print_stat> ; | <read_stat> ; | <if_stat> | <for_stat> | <return_stat> ; | { <stat_list> } | break ; | ;
 <read_stat> -> read ident <lvalue>
 <print_stat> -> print <expression>
