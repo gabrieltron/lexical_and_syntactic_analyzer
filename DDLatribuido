@@ -11,8 +11,10 @@
 	<num_expression>.node = <opt_term>.sin
 	<opt_term>.her = <term>.node
 
-<opt_term> -> <pm_op> <term> <opt_term>(1) 
-	<opt_term>(1).her = new Node(<pm_op>.node, <opt_term>.her, <term>.node  
+<opt_term> -> + <term> <opt_term>(1) 
+	<opt_term>(1).her = new Node('+', <opt_term>.her, <term>.node  
+| - <term> <opt_term>(1) 
+	<opt_term>(1).her = new Node('-', <opt_term>.her, <term>.node  
 | &
 	<opt_term>.sin = <opt_term>.her
 
@@ -20,46 +22,43 @@
 	<term>.node = <unary_vazio>.sin
 	<unary_vazio>.her = <unary_expr>.node
 
-<unary_expr> -> <pm_op?> <factor>
+<unary_expr> -> <factor>
+	<unary_expr>.node = <factor>.sin
+	<factor>.her = <pm_op?>.node
+| + <factor>
+	<unary_expr>.node = <factor>.sin
+	<factor>.her = <pm_op?>.node
+| - <factor>
 	<unary_expr>.node = <factor>.sin
 	<factor>.her = <pm_op?>.node
 
-<factor> -> int-const //REFAZER
-	factor.node = new Leaf(int-const, factor.her (+) TabSimb(int-const)) 
-| string-const 
-	factor.node = new Leaf(string-const, factor.her (+) TabSimb(string-const)) 
-| null 
-	factor.node = new Leaf(null, factor.her (+) TabSimb(null)) 
-| ident <lvalue> 
-	//TODO
-| ( <expression> )
-	factor.node = <expression>.node
 
-<unary_vazio> -> <mdm_op> <unary_expr> <unary_vazio>(1) 
-	<unary_vazio>(1).her = new Node(<mdm_op>.node, <unary_vazio>.her, <unary_expr>.node  
+<factor> -> int-const //REFAZER
+	<factor>.node = new Leaf(int-const, <factor>.her (positivo ou negativo) TabSimb(int-const)) 
+| string-const 
+	<factor>.node = new Leaf(string-const, TabSimb(string-const)) 
+| null 
+	<factor>.node = new Leaf(null, TabSimb(null)) 
+| ident <lvalue> 
+	<factor>.node = <lvalue>.sin
+	<lvalue>.her = TabSimb(ident)
+| ( <expression> )
+	<factor>.node = <expression>.node
+
+<unary_vazio> -> * <unary_expr> <unary_vazio>(1) 
+	<unary_vazio>(1).her = new Node( '*' , <unary_vazio>.her, <unary_expr>.node)  
+| / <unary_expr> <unary_vazio>(1) 
+	<unary_vazio>(1).her = new Node( '/' , <unary_vazio>.her, <unary_expr>.node)
+| % <unary_expr> <unary_vazio>(1) 
+	<unary_vazio>(1).her = new Node( '%' , <unary_vazio>.her, <unary_expr>.node) 
 | &
 	<unary_vazio>.sin = <unary_vazio>.her
 
-<pm_op> -> + 
-	<pm_op>.node = new Leaf(+, TabSimb('+'))
-| -
-	<pm_op>.node = new Leaf(-, TabSimb('-'))
-<pm_op?> -> <pm_op> 
-	<pm_op?>.node = <pm_op>.node
-| & 	
-	//TODO
+<lvalue> -> [ int-const ] <lvalue>(1) 
+	<lvalue>(1).her = <lvalue>
+| . ident <arg_list?> <lvalue> 
 	
-<mdm_op> -> * 
-	<mdm_op>.node = new Leaf(*, TabSimb('*'))
-| / 
-	<mdm_op>.node = new Leaf(/, TabSimb('/'))
-| % 
-	<mdm_op>.node = new Leaf(%, TabSimb('%'))
+| &
+	<lvalue>.sin = <lvalue>.her
 
-
-
-
-
-
-
-
+<arg_list?> -> ( int-const ) | &
