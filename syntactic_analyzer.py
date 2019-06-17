@@ -106,6 +106,7 @@ class Syntactic_Analyzer:
                         else:
                             for f in self.first[next_symbol]:
                                 if f not in follow[symbol] and f != '&':
+
                                     follow[symbol].add(f)
                                     changed = True
 
@@ -118,7 +119,7 @@ class Syntactic_Analyzer:
                             break
                         else:
                             for f in follow[head]:
-                                if f not in follow[symbol]:
+                                if f not in follow[symbol] and f not in self.first[symbol]:
                                     follow[symbol].add(f)
                                     changed = True
                         if '&' not in self.first[symbol]:
@@ -135,10 +136,6 @@ class Syntactic_Analyzer:
                                     follow[prev_symbol].add(f)
                                     changed = True 
 
-
-
-
-
         self.follow = follow
 
     def is_terminal_origin(self, symbol, origin_production):
@@ -146,6 +143,8 @@ class Syntactic_Analyzer:
             if production in self.grammar.terminals:
                 if production == symbol:
                     return True
+                else:
+                    return False
             elif symbol in self.first[production]:
                 return True
             else:
@@ -162,6 +161,7 @@ class Syntactic_Analyzer:
 
             for symbol in self.first[non_terminal]:
                 if symbol != '&':
+
                     origin = ''
                     for production in self.grammar.p[non_terminal]:
 
@@ -189,6 +189,7 @@ class Syntactic_Analyzer:
                     if follow_symbol not in table[non_terminal]:
                         table[non_terminal][follow_symbol] = 'sync'
 
+
         self.table = table
 
     def add_error(self, errors, symbol, line):
@@ -214,7 +215,9 @@ class Syntactic_Analyzer:
                 terminal = token[0]
                 word.append(terminal)
 
+                
             compare = stack.pop()
+
             #print(terminal)
             #print(compare)
             #if compare in self.table:
