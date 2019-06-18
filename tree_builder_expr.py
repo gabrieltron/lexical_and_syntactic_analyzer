@@ -59,15 +59,15 @@ lark_grammar = Lark('''\
 
     term : unary_expr unary_vazio               -> term             
 
-    unary_expr : factor                         -> unary            
-            | "+" factor                        -> unary           
-            | "-" factor                        -> unary           
+    unary_expr : factor                         -> unary_expr            
+            | "+" factor                        -> unary_expr           
+            | "-" factor                        -> unary_expr           
 
-    factor : INT_CONSTANT                       -> factor_int                 
-            | STRING_CONSTANT                   -> factor_string                   
-            | "null"                            -> factor_null         
-            | IDENT lvalue                      -> factor_ident          
-            | "(" num_expression ")"            -> factor_expr         
+    factor : INT_CONSTANT                       -> factor                 
+            | STRING_CONSTANT                   -> factor                   
+            | "null"                            -> factor         
+            | IDENT lvalue                      -> factor         
+            | "(" num_expression ")"            -> factor        
 
     unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio      
             | "/" unary_expr unary_vazio        -> unary_vazio      
@@ -148,11 +148,12 @@ class CalculateTree(Visitor):
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
-            attributes[('opt_term', 'val')] = attributes[('opt_term', 'left_value')]
+            attributes[('opt_term', 'val')] = attributes[('opt_term', 'left_val')]
             attributes[('opt_term', 'type')] = attributes[('opt_term', 'left_type')]
+            print(attributes)
         else:
             op = tree.children[0].value
-            right_val = attributes[('term','value')]
+            right_val = attributes[('term','val')]
             right_type = attributes[('term','type')]
             left_val = attributes[('opt_term'), ('left_val')] 
             left_type = attributes[('opt_term'), ('left_type')] 
@@ -160,16 +161,22 @@ class CalculateTree(Visitor):
                 print("Type error exception: expression with values of different types")
             else:
                 if op == "+":
-                    result = left_val + right_val
+                    if left_type == 'int':
+                        result = int(left_val) + int(right_val)
+                    else:
+                        result = left_val + right_val
                 else:
                     if (left_type == 'str'):
                         print("Operator Exception: Invalid operator '-'  for type string")
                         result = ''
-                    result = left_value - right_value
-                attributes[('opt_term\''), ('left_val')] = result
-                attributes[('opt_term\''), ('left_type')] = left_type
-                attributes[('opt_term'), ('val')] = attributes[('opt_term\''), ('val')]
-                attributes[('opt_term'), ('type')] = attributes[('opt_term\'','type')]  
+                    result = int(left_val) - int(right_val)
+                
+                attributes[('opt_term'), ('left_val')] = result
+                attributes[('opt_term'), ('left_type')] = left_type
+                attributes[('opt_term', 'val')] = attributes[('opt_term\'', 'val')]
+                attributes[('opt_term', 'type')] = attributes[('opt_term\'','type')]  
+                print(attributes)
+                
            
     def lvalue(self, tree, attributes): #ok
         if not tree.children:
@@ -194,11 +201,11 @@ class CalculateTree(Visitor):
 
     def unary_vazio(self, tree, attributes):#ok
         if not tree.children:
-            attributes[('unary_vazio', 'val')] = attributes[('unary_vazio', 'left_value')]
+            attributes[('unary_vazio', 'val')] = attributes[('unary_vazio', 'left_val')]
             attributes[('unary_vazio', 'type')] = attributes[('unary_vazio', 'left_type')]
         else:
             op = tree.children[0].value
-            right_val = attributes[('unary_expr','value')]
+            right_val = attributes[('unary_expr','val')]
             right_type = attributes[('unary_expr','type')]
             left_val = attributes[('unary_vazio'), ('left_val')] 
             left_type = attributes[('unary_vazio'), ('left_type')] 
@@ -206,15 +213,15 @@ class CalculateTree(Visitor):
                 print("Type error exception: this expression do not support the types given")
             else:
                 if op == "*":
-                    result = left_val * right_val
+                    result = int(left_val) * int(right_val)
                 elif op == "/":
-                    result = left_value // right_value
+                    result = int(left_val) // int(right_val)
                 elif op == "%":
-                    result = left_value % right_value
-                attributes[('unary_vazio\''), ('left_val')] = result
-                attributes[('unary_vazio\''), ('left_type')] = left_type
-                attributes[('unary_vazio'), ('val')] = attributes[('unary_vazio\''), ('val')]
-                attributes[('unary_vazio'), ('type')] = attributes[('unary_vazio\'','type')]
+                    result = int(left_val) % int(right_val)
+                attributes[('unary_vazio', 'left_val')] = result
+                attributes[('unary_vazio', 'left_type')] = left_type
+                attributes[('unary_vazio', 'val')] = attributes[('unary_vazio\'', 'val')]
+                attributes[('unary_vazio', 'type')] = attributes[('unary_vazio\'','type')]
         
     def term(self, tree, attributes):#ok
         attributes[('unary_vazio', 'left_val')] = attributes[('unary_expr', 'val')]
@@ -228,21 +235,20 @@ class CalculateTree(Visitor):
         attributes[('num_expression', 'val')] = attributes[('opt_term', 'val')]
         attributes[('num_expression', 'type')] = attributes[('opt_term', 'type')]
 
-    def unary(self, tree, attributes):#ok
-        print(attributes)
+    def unary_expr(self, tree, attributes):#ok
         tokens = [token for token in tree.children if isinstance(token, Token)]
         if len(tokens) == 2:
             token_value = tree.children[0].value
             if token_value == '-':
-                attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
+                attributes[('unary_expr', 'val')] = 0 - attributes[('factor','val')]
             else: 
-                attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
-            attributes[('unary', 'type')] = attributes[('factor','type')]
+                attributes[('unary_expr', 'val')] = 0 - attributes[('factor','val')]
+            attributes[('unary_expr', 'type')] = attributes[('factor','type')]
         else:
-            attributes[('unary', 'val')] = attributes[('factor','val')]
-            attributes[('unary', 'type')] = attributes[('factor', 'type')]
+            attributes[('unary_expr', 'val')] = attributes[('factor','val')]
+            attributes[('unary_expr', 'type')] = attributes[('factor', 'type')]
         
-    def factor_int(self, tree, attributes):#ok
+    def factor(self, tree, attributes):#ok
         token_value = tree.children[0].value
         attributes[('factor', 'type')] = 'int'
         attributes[('factor', 'val')] = token_value
@@ -271,12 +277,13 @@ class CalculateTree(Visitor):
     def update_table_value(self, ident, _type, value):# ok
         type = self.symbol_table.types[_type]
         atual = self.symbol_table.variables[ident]
-        if type == atual.type:
+        if type.name == atual.type:
+            
             self.symbol_table.variables[ident] = TableEntry(type, value)
         else:
             #throw some error
             pass
-text = "x = 1 + 2"
+text = "x = 100 - 30"
 tree = lark_grammar.parse(text)
 
 
