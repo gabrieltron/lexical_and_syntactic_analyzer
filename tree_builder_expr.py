@@ -48,27 +48,21 @@ class SymbolTable():
 
 
 lark_grammar = Lark('''\
-
     atrib_stat : IDENT lvalue "=" num_expression      -> atrib
-
     num_expression : term opt_term              -> num_expression  
     
     opt_term : "+" term opt_term                -> opt_term        
             | "-" term opt_term                 -> opt_term        
             |                                   -> opt_term        
-
     term : unary_expr unary_vazio               -> term             
-
     unary_expr : factor                         -> unary_expr            
             | "+" factor                        -> unary_expr           
             | "-" factor                        -> unary_expr           
-
     factor : INT_CONSTANT                       -> factor                 
             | STRING_CONSTANT                   -> factor                   
             | "null"                            -> factor         
             | IDENT lvalue                      -> factor         
             | "(" num_expression ")"            -> factor        
-
     unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio      
             | "/" unary_expr unary_vazio        -> unary_vazio      
             | "%" unary_expr unary_vazio        -> unary_vazio     
@@ -99,7 +93,6 @@ class CalculateTree(Visitor):
         '''Visits the tree in a bottom up manner, trying to execute father's
         semantic actions before going to children, so we can pass an attribute
         from a left child to a right child.
-
         Args:
             tree: Current subtree
             attrs: Semantic attributes, they can be from the current node, from
@@ -133,24 +126,27 @@ class CalculateTree(Visitor):
         ident = tree.children[0].value
 
         attributes[('lvalue', 'ident')] = ident
-        attributes[('lvalue', 'position')] = 0
 
         right_val = attributes[('num_expression', 'val')]
         right_type = attributes[('num_expression', 'type')]
 
         left_val = attributes[('lvalue', 'val')]
         left_type = attributes[('lvalue', 'type')]
+        if ('lvalue', 'position') in attributes:
+            position = attributes[('lvalue', 'position')]
+        else:
+            position = 0
 
         if left_type != right_type:
             print("Type Exception: trying to attribute a " + right_type + " to a " + left_type + " variable")
         else:
-            self.update_table_value(ident, left_type, right_val)
+            print(position)
+            self.update_table_value(ident, left_type, right_val, position)
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
             attributes[('opt_term', 'val')] = attributes[('opt_term', 'left_val')]
             attributes[('opt_term', 'type')] = attributes[('opt_term', 'left_type')]
-            print(attributes)
         else:
             op = tree.children[0].value
             right_val = attributes[('term','val')]
@@ -175,7 +171,6 @@ class CalculateTree(Visitor):
                 attributes[('opt_term'), ('left_type')] = left_type
                 attributes[('opt_term', 'val')] = attributes[('opt_term\'', 'val')]
                 attributes[('opt_term', 'type')] = attributes[('opt_term\'','type')]  
-                print(attributes)
                 
            
     def lvalue(self, tree, attributes): #ok
@@ -183,19 +178,22 @@ class CalculateTree(Visitor):
             ident = attributes[('lvalue', 'ident')]
             var = self.symbol_table.variables[ident]
             if isinstance(var.type, Array):
-                pos = attributes[('lvalue', 'position')]
-                if (pos * var.type.base_type.required_memory > var.type.required_memory):
-                    #error
-                    print("Index out of bounds Exception")
-                attributes[('lvalue', 'val')] = var.value[pos]
-                attributes[('lvalue', 'type')] = var.type.base_type.name
+                if ('lvalue', 'position') not in attributes:
+                    print("Missing index exception")
+                else:
+                    pos = attributes[('lvalue', 'position')]
+                    if (pos * var.type.base_type.required_memory > var.type.required_memory):
+                        #error
+                        print("Index out of bounds Exception")
+                    attributes[('lvalue', 'val')] = var.value[pos]
+                    attributes[('lvalue', 'type')] = var.type.base_type.name
             else:
                 attributes[('lvalue', 'val')] = var.value
                 attributes[('lvalue', 'type')] = var.type
         else:
             pos = int(tree.children[1].value)
-            attributes[('lvalue\''), ('ident')] = attributes[('lvalue'), ('ident')]
-            attributes[('lvalue\''), ('position')] = pos + attributes[('lvalue'), ('position')] # * dimension size
+            attributes[('lvalue'), ('ident')] = attributes[('lvalue'), ('ident')]
+            attributes[('lvalue'), ('position')] = pos # * dimension size
             attributes[('lvalue'), ('val')] = attributes[('lvalue\''), ('val')]
             attributes[('lvalue'), ('type')] = attributes[('lvalue\'','type')]  
 
@@ -274,13 +272,16 @@ class CalculateTree(Visitor):
         attributes[('factor', 'type')] = attributes[('num_expression', 'type')]
         attributes[('factor', 'val')] = attributes[('num_expression', 'val')]
 
-    def update_table_value(self, ident, _type, value):# ok
+    def update_table_value(self, ident, _type, value, position):# ok
         type = self.symbol_table.types[_type]
         atual = self.symbol_table.variables[ident]
         if type.name == atual.type:
-            
             self.symbol_table.variables[ident] = TableEntry(type, value)
-        else:
+        elif isinstance(atual.type, Array):
+            if atual.type.base_type.name == type.name:
+                temp = self.symbol_table.variables[ident].value
+                temp[position] = value
+                self.symbol_table.variables[ident] = TableEntry(type, temp)
             #throw some error
             pass
 text = "x = 100 - 30"
@@ -292,7 +293,6 @@ types = {
     'char': BaseType('char', 1),
     'str': BaseType('str', 0)
     }
-
 variables = {
     'x': TableEntry('int', 0)
 }
