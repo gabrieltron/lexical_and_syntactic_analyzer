@@ -61,7 +61,7 @@ lark_grammar = Lark('''\
     factor : INT_CONSTANT                       -> factor                 
             | STRING_CONSTANT                   -> factor                   
             | "null"                            -> factor         
-            | IDENT lvalue                      -> factor         
+            | IDENT lvalue                      -> factor        
             | "(" num_expression ")"            -> factor        
     unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio      
             | "/" unary_expr unary_vazio        -> unary_vazio      
@@ -140,7 +140,6 @@ class CalculateTree(Visitor):
         if left_type != right_type:
             print("Type Exception: trying to attribute a " + right_type + " to a " + left_type + " variable")
         else:
-            print(position)
             self.update_table_value(ident, left_type, right_val, position)
 
     def opt_term(self, tree, attributes):#ok
@@ -189,13 +188,14 @@ class CalculateTree(Visitor):
                     attributes[('lvalue', 'type')] = var.type.base_type.name
             else:
                 attributes[('lvalue', 'val')] = var.value
-                attributes[('lvalue', 'type')] = var.type
+                attributes[('lvalue', 'type')] = var.type.name
         else:
             pos = int(tree.children[1].value)
             attributes[('lvalue'), ('ident')] = attributes[('lvalue'), ('ident')]
             attributes[('lvalue'), ('position')] = pos # * dimension size
             attributes[('lvalue'), ('val')] = attributes[('lvalue\''), ('val')]
-            attributes[('lvalue'), ('type')] = attributes[('lvalue\'','type')]  
+            attributes[('lvalue'), ('type')] = attributes[('lvalue\'','type')] 
+
 
     def unary_vazio(self, tree, attributes):#ok
         if not tree.children:
@@ -247,35 +247,34 @@ class CalculateTree(Visitor):
             attributes[('unary_expr', 'type')] = attributes[('factor', 'type')]
         
     def factor(self, tree, attributes):#ok
-        token_value = tree.children[0].value
-        attributes[('factor', 'type')] = 'int'
-        attributes[('factor', 'val')] = token_value
+        tokens = [token for token in tree.children if isinstance(token, Token)]
+        
+        if len(tokens) == 1:
+            token_value = tree.children[0].value
+            if tokens[0].type == 'INT_CONSTANT':
+                attributes[('factor', 'type')] = 'int'
+                attributes[('factor', 'val')] = token_value
+            elif token_value == 'null':
+                attributes[('factor', 'type')] = 'int'
+                attributes[('factor', 'val')] = 0
+            elif tokens[0].type == 'STRING_CONSTANT':
+                attributes[('factor', 'type')] = 'str'
+                attributes[('factor', 'val')] = token_value
+            else:
+                ident = tree.children[0].value
+                attributes[('lvalue', 'ident')] = ident
+                attributes[('factor', 'val')] = attributes[('lvalue', 'val')]
+                attributes[('factor', 'type')] = attributes[('lvalue', 'type')]
+        else:
+            attributes[('factor', 'type')] = attributes[('num_expression', 'type')]
+            attributes[('factor', 'val')] = attributes[('num_expression', 'val')]
 
-
-    def factor_string(self, tree, attributes): #ok
-        token_value = tree.children[0].value
-        attributes[('factor', 'type')] = 'str'
-        attributes[('factor', 'val')] = token_value
-
-    def factor_null(self, tree, attributes): #ok
-        attributes[('factor', 'type')] = 'int'
-        attributes[('factor', 'val')] = 0
-
-    def factor_ident(self, tree, attributes):#ok
-        ident = tree.children[0].value
-        attributes[('lvalue', 'ident')] = ident
-        attributes[('lvalue', 'position')] = 0
-        attributes[('factor', 'val')] = attributes[('lvalue', 'val')]
-        attributes[('factor', 'type')] = attributes[('factor', 'type')]
-
-    def factor_expr(self, tree, attributes):# ok
-        attributes[('factor', 'type')] = attributes[('num_expression', 'type')]
-        attributes[('factor', 'val')] = attributes[('num_expression', 'val')]
 
     def update_table_value(self, ident, _type, value, position):# ok
         type = self.symbol_table.types[_type]
         atual = self.symbol_table.variables[ident]
-        if type.name == atual.type:
+        print(value)
+        if type.name == atual.type.name:
             self.symbol_table.variables[ident] = TableEntry(type, value)
         elif isinstance(atual.type, Array):
             if atual.type.base_type.name == type.name:
@@ -284,7 +283,7 @@ class CalculateTree(Visitor):
                 self.symbol_table.variables[ident] = TableEntry(type, temp)
             #throw some error
             pass
-text = "x = 100 - 30"
+text = "x = y + 1"
 tree = lark_grammar.parse(text)
 
 
@@ -294,7 +293,8 @@ types = {
     'str': BaseType('str', 0)
     }
 variables = {
-    'x': TableEntry('int', 0)
+    'x': TableEntry(BaseType('int', 4), 2),
+    'y': TableEntry(BaseType('int', 4), 4)
 }
 symbol_table = SymbolTable(types, variables)
 visitor = CalculateTree(symbol_table)
