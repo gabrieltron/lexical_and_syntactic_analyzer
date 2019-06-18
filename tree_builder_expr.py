@@ -49,45 +49,33 @@ class SymbolTable():
 
 lark_grammar = Lark('''\
 
-    num_expression : term opt_term              -> expr_start       // opt_term.left_val = term.val
-                                                                    // num_expression.val = opt_term.result
-                                                                    // num_expression.type = opt_term.type
+    atrib_stat : IDENT lvalue "=" num_expression      -> atrib
+
+    num_expression : term opt_term              -> num_expression  
     
-    opt_term : "+" term opt_term                -> opt_term         // opt_term1.left_val = opt_term.lev_val + term.val
-                                                                    // opt_term.result = opt_term1.result
-            | "-" term opt_term                 -> opt_term         // same
-            |                                   -> opt_term         // opt_term.result = opt_term.left_val
+    opt_term : "+" term opt_term                -> opt_term        
+            | "-" term opt_term                 -> opt_term        
+            |                                   -> opt_term        
 
-    term : unary_expr unary_vazio               -> term             // term.val = unary_vazio.result
-                                                                    // unary_vazio.left_val = unary_expr.val
+    term : unary_expr unary_vazio               -> term             
 
+    unary_expr : factor                         -> unary            
+            | "+" factor                        -> unary           
+            | "-" factor                        -> unary           
 
-    unary_expr : factor                         -> unary            // unary_expr.val = factor.val
-            | "+" factor                        -> unary            // unary_expr.val = + factor.val
-            | "-" factor                        -> unary            // unary_expr.val = - factor.val
+    factor : INT_CONSTANT                       -> factor_int                 
+            | STRING_CONSTANT                   -> factor_string                   
+            | "null"                            -> factor_null         
+            | IDENT lvalue                      -> factor_ident          
+            | "(" num_expression ")"            -> factor_expr         
 
-    factor : INT_CONSTANT                       -> factor_int           // factor.val = int-constant
-                                                                    // factor.type = int
-            | STRING_CONSTANT                   -> factor_string           // factor.val = string-constant
-                                                                    // factor.type = string
-            | "null"                            -> factor_null           // factor.val = 0
-                                                                    // factor.type = int
-            | IDENT lvalue                      -> factor_ident          // factor.val = lvalue.result
-                                                                    // factor.type = lvalue.type
-                                                                    // lvalue.pos = symbol_table(ident)
-                                                                    // lvalue.type = symbol_table(ident)
-                                                                    // lvalue.dimensions = symbol_table(ident)
-            | "(" num_expression ")"            -> factor_expr          // factor.val = num_expression.val
-
-    unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio      //unary_vazio1.left_val = unary_vazio.left_val * unary_expr.val
-                                                                    //unary_vazio.result = unary_vazio1.result
-            | "/" unary_expr unary_vazio        -> unary_vazio      //same
-            | "%" unary_expr unary_vazio        -> unary_vazio      //same
-            |                                   -> unary_vazio      //unary_vazio.result = unary_vazio.left_val
+    unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio      
+            | "/" unary_expr unary_vazio        -> unary_vazio      
+            | "%" unary_expr unary_vazio        -> unary_vazio     
+            |                                   -> unary_vazio      
         
-    lvalue : "[" INT_CONSTANT "]" lvalue        -> lvalue           //lvalue1.pos = 
-                                                                    //lvalue.result = lvalue1.result 
-            |                                   -> lvalue           //lvalue.result = symbol_table(lvalue.pos)
+    lvalue : "[" INT_CONSTANT "]" lvalue        -> lvalue         
+            |                                   -> lvalue          
     
     
     %import common.INT -> INT_CONSTANT
@@ -95,10 +83,7 @@ lark_grammar = Lark('''\
     %import common.WS
     %import common.CNAME -> IDENT
     %ignore WS
-''', start='statement', keep_all_tokens=True)
-
-
-
+''', start='atrib_stat', keep_all_tokens=True)
 
 class CalculateTree(Visitor):
     def __init__(self, symbol_table: SymbolTable):
@@ -137,93 +122,160 @@ class CalculateTree(Visitor):
                 for key, value in child_attrs.items():
                     name, attr = key
                     while (name, '_exist') in attrs:
-                        name += '\''inherit_type
+                        name += '\''
                     attrs[(name, attr)] = value
 
         self._call_userfunc(tree, attrs)
         my_attributes = {key:value for key, value in attrs.items() if key[0] == tree.data and key[1] != '_exist'}
         return my_attributes
 
-    def expr_start(self, tree, attributes):
+    def atrib(self, tree, attributes):
+        ident = tree.children[0].value
+
+        attributes[('lvalue', 'ident')] = ident
+        attributes[('lvalue', 'position')] = 0
+
+        right_val = attributes[('num_expression', 'val')]
+        right_type = attributes[('num_expression', 'type')]
+
+        left_val = attributes[('lvalue', 'val')]
+        left_type = attributes[('lvalue', 'type')]
+
+        if left_type != right_type:
+            print("Type Exception: trying to attribute a " + right_type + " to a " + left_type + " variable")
+        else:
+            self.update_table_value(ident, left_type, right_val)
+
+    def opt_term(self, tree, attributes):#ok
+        if not tree.children:
+            attributes[('opt_term', 'val')] = attributes[('opt_term', 'left_value')]
+            attributes[('opt_term', 'type')] = attributes[('opt_term', 'left_type')]
+        else:
+            op = tree.children[0].value
+            right_val = attributes[('term','value')]
+            right_type = attributes[('term','type')]
+            left_val = attributes[('opt_term'), ('left_val')] 
+            left_type = attributes[('opt_term'), ('left_type')] 
+            if (right_type != left_type):
+                print("Type error exception: expression with values of different types")
+            else:
+                if op == "+":
+                    result = left_val + right_val
+                else:
+                    if (left_type == 'str'):
+                        print("Operator Exception: Invalid operator '-'  for type string")
+                        result = ''
+                    result = left_value - right_value
+                attributes[('opt_term\''), ('left_val')] = result
+                attributes[('opt_term\''), ('left_type')] = left_type
+                attributes[('opt_term'), ('val')] = attributes[('opt_term\''), ('val')]
+                attributes[('opt_term'), ('type')] = attributes[('opt_term\'','type')]  
+           
+    def lvalue(self, tree, attributes): #ok
+        if not tree.children:
+            ident = attributes[('lvalue', 'ident')]
+            var = self.symbol_table.variables[ident]
+            if isinstance(var.type, Array):
+                pos = attributes[('lvalue', 'position')]
+                if (pos * var.type.base_type.required_memory > var.type.required_memory):
+                    #error
+                    print("Index out of bounds Exception")
+                attributes[('lvalue', 'val')] = var.value[pos]
+                attributes[('lvalue', 'type')] = var.type.base_type.name
+            else:
+                attributes[('lvalue', 'val')] = var.value
+                attributes[('lvalue', 'type')] = var.type
+        else:
+            pos = int(tree.children[1].value)
+            attributes[('lvalue\''), ('ident')] = attributes[('lvalue'), ('ident')]
+            attributes[('lvalue\''), ('position')] = pos + attributes[('lvalue'), ('position')] # * dimension size
+            attributes[('lvalue'), ('val')] = attributes[('lvalue\''), ('val')]
+            attributes[('lvalue'), ('type')] = attributes[('lvalue\'','type')]  
+
+    def unary_vazio(self, tree, attributes):#ok
+        if not tree.children:
+            attributes[('unary_vazio', 'val')] = attributes[('unary_vazio', 'left_value')]
+            attributes[('unary_vazio', 'type')] = attributes[('unary_vazio', 'left_type')]
+        else:
+            op = tree.children[0].value
+            right_val = attributes[('unary_expr','value')]
+            right_type = attributes[('unary_expr','type')]
+            left_val = attributes[('unary_vazio'), ('left_val')] 
+            left_type = attributes[('unary_vazio'), ('left_type')] 
+            if (right_type != 'int' or left_type != 'int'):
+                print("Type error exception: this expression do not support the types given")
+            else:
+                if op == "*":
+                    result = left_val * right_val
+                elif op == "/":
+                    result = left_value // right_value
+                elif op == "%":
+                    result = left_value % right_value
+                attributes[('unary_vazio\''), ('left_val')] = result
+                attributes[('unary_vazio\''), ('left_type')] = left_type
+                attributes[('unary_vazio'), ('val')] = attributes[('unary_vazio\''), ('val')]
+                attributes[('unary_vazio'), ('type')] = attributes[('unary_vazio\'','type')]
+        
+    def term(self, tree, attributes):#ok
+        attributes[('unary_vazio', 'left_val')] = attributes[('unary_expr', 'val')]
+        attributes[('unary_vazio', 'left_type')] = attributes[('unary_expr', 'type')]
+        attributes[('term', 'val')] = attributes[('unary_vazio', 'val')]
+        attributes[('term', 'type')] = attributes[('unary_vazio', 'type')]
+
+    def num_expression(self, tree, attributes): #ok
         attributes[('opt_term', 'left_val')] = attributes[('term', 'val')]
         attributes[('opt_term', 'left_type')] = attributes[('term', 'type')]
-        attributes[('num_expression', 'left_val')] = attributes[('opt_term', 'result')]
-        attributes[('num_expression', 'left_type')] = attributes[('opt_term', 'type')]
+        attributes[('num_expression', 'val')] = attributes[('opt_term', 'val')]
+        attributes[('num_expression', 'type')] = attributes[('opt_term', 'type')]
 
-    def unary(self, tree, attributes):
+    def unary(self, tree, attributes):#ok
+        print(attributes)
         tokens = [token for token in tree.children if isinstance(token, Token)]
-        if attributes[('factor', 'type')] != 'int':
+        if len(tokens) == 2:
+            token_value = tree.children[0].value
+            if token_value == '-':
+                attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
+            else: 
+                attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
+            attributes[('unary', 'type')] = attributes[('factor','type')]
+        else:
             attributes[('unary', 'val')] = attributes[('factor','val')]
             attributes[('unary', 'type')] = attributes[('factor', 'type')]
-        else:
-            if len(tokens) == 2:
-                token_value = tree.children[0].value
-                if token_value == '-':
-                    attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
-                else: 
-                    attributes[('unary', 'val')] = 0 - attributes[('factor','val')]
-                attributes[('unary', 'type')] = attributes[('factor','type')]
-            else:
-                attributes[('unary', 'val')] = attributes[('factor','val')]
-                attributes[('unary', 'type')] = attributes[('factor', 'type')]
         
-
-    def factor_int(self, tree, attributes):
+    def factor_int(self, tree, attributes):#ok
         token_value = tree.children[0].value
         attributes[('factor', 'type')] = 'int'
         attributes[('factor', 'val')] = token_value
 
-    def factor_string(self, tree, attributes):
+
+    def factor_string(self, tree, attributes): #ok
         token_value = tree.children[0].value
-        attributes[('factor', 'type')] = 'string'
+        attributes[('factor', 'type')] = 'str'
         attributes[('factor', 'val')] = token_value
 
-    def factor_null(self, tree, attributes):
-        attributes[('factor', 'type')] = 'null'
+    def factor_null(self, tree, attributes): #ok
+        attributes[('factor', 'type')] = 'int'
         attributes[('factor', 'val')] = 0
 
-    def factor_ident(self, tree, attributes):
-        //TODO
-        token_value = tree.children[0].value
-        attributes[('factor', 'type')] = 'string'
-        attributes[('factor', 'val')] = token_value
+    def factor_ident(self, tree, attributes):#ok
+        ident = tree.children[0].value
+        attributes[('lvalue', 'ident')] = ident
+        attributes[('lvalue', 'position')] = 0
+        attributes[('factor', 'val')] = attributes[('lvalue', 'val')]
+        attributes[('factor', 'type')] = attributes[('factor', 'type')]
 
-    def factor_expr(self, tree, attributes):
-        token_value = tree.children[0].value
+    def factor_expr(self, tree, attributes):# ok
         attributes[('factor', 'type')] = attributes[('num_expression', 'type')]
         attributes[('factor', 'val')] = attributes[('num_expression', 'val')]
 
-    def var_decl(self, tree, attributes):
-        if not tree.children:
-            return None
-
-        tokens = [token for token in tree.children if isinstance(token, Token)]
-        id = tokens[0].value if len(tokens) == 1 else tokens[1].value
-        attributes[('var_decl', 'ident')] = id
-        attributes[('var_decl', 'dimension')] = attributes[('vector','dimension')]
-        attributes[('var_decl','n_elements')] = attributes[('vector','n_elements')]
-        attributes[('extra_var','og_type')] = attributes[('var_decl','og_type')]
-        self.update_symbol_table(id, attributes[('extra_var','og_type')], attributes[('vector','dimension')], attributes[('vector','n_elements')])
-
-    def vector(self, tree, attrs):
-        if not tree.children:
-            attrs[('vector', 'dimension')] = 0
-            attrs[('vector', 'n_elements')] = 1
-            return None
-        else:
-            size = int(tree.children[1].value)
-            attrs[('vector'), ('dimension')] = attrs[('vector\''), ('dimension')] + 1
-            attrs[('vector'), ('n_elements')] = attrs[('vector\'','n_elements')] * size
-
-    def update_symbol_table(self, ident, _type, dimension = 0, n_elements = 0):
+    def update_table_value(self, ident, _type, value):# ok
         type = self.symbol_table.types[_type]
-        if dimension == 0:
-            self.symbol_table.variables[ident] = TableEntry(type)
+        atual = self.symbol_table.variables[ident]
+        if type == atual.type:
+            self.symbol_table.variables[ident] = TableEntry(type, value)
         else:
-            array = Array(type, dimension, n_elements*type.required_memory)
-            self.symbol_table.variables[ident] = TableEntry(array)
-
-
+            #throw some error
+            pass
 text = "x = 1 + 2"
 tree = lark_grammar.parse(text)
 
@@ -231,10 +283,13 @@ tree = lark_grammar.parse(text)
 types = {
     'int': BaseType('int', 4),     
     'char': BaseType('char', 1),
-    'str': BaseType('str', 0)  # str is assumed to have size 0 since we need
-                                # to know how many chars it'll have first
+    'str': BaseType('str', 0)
     }
-symbol_table = SymbolTable(types)
+
+variables = {
+    'x': TableEntry('int', 0)
+}
+symbol_table = SymbolTable(types, variables)
 visitor = CalculateTree(symbol_table)
 visitor.visit(tree)
 print(symbol_table.pretty())
