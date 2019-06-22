@@ -1,0 +1,2 @@
+Utilizada a biblioteca Lark-parser.
+Aqui é printado os rótulos da árvore, que é percorrida em pós-ordem.

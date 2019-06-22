@@ -1,0 +1,108 @@
+class DepthSearch
+{
+
+    int adj[][];
+    int pos[];
+    int color[];
+
+    int search(int vertex, int current_color)
+    {
+        visited[vertex] = current_color;
+        int next_color;
+        if (current_color == 1)
+        {
+            next_color = 2;
+        }
+        else
+        {
+            next_color = 1;
+        }
+
+        int i;
+        for (i = 0; i < pos[vertex]; i = i+1)
+        {
+            int neighbour;
+            neighbour = adj[vertex][i];
+            if (color[neighbour] == 0)
+            {
+                int p;
+                p = this.search(neighbour, next_color);
+                if (p == 0)
+                {
+                    return 0;
+                }
+            }
+            else
+            {
+                if (color[neighbour] == current_color)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        return 1;
+    }
+
+    int main() {
+        int n_vertex;
+        print "Digite o numero de vertices do grafo";
+        read n_vertex;
+
+        int vertex_counter;
+        for (vertex_counter = 0; vertex_counter < n_vertex; vertex_counter = vertex_counter + 1)
+        {
+            pos[vertex_counter] = 0;
+            color[vertex_counter] = 0;
+        }
+
+        int n_edges;
+        print "Dgite o numero de arestas do grafo";
+        read n_edges;
+
+        int edges_counter;
+        for (edges_counter = 0; edges_counter < n_edges; edges_counter = edges_counter + 1)
+        {
+            int from;
+            print "Digite o vértice de origem";
+            read from;
+
+            int to;
+            print "Digite o vértice de destino";
+            read to;
+
+            int n_adj_from;
+            n_adj_from = pos[from];
+            adj[from][n_adj_from] = to;
+            pos[from] = pos[from] + 1;
+
+            int n_adj_to;
+            n_adj_to = pos[to];
+            adj[to][n_adj_to] = from;
+            pos[to] = pos[to] + 1;
+        }
+
+        int vertice;
+        int possible;
+        for (vertice = 0; vertice < n_vertex; vertice = vertice + 1)
+        {
+            if (color[vertice] ==  0)
+            {
+                possible = this.search(vertice, 1);
+                if (possible == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (possible == 1)
+        {
+            print "E possivel colorir o grafo com duas cores";
+        }
+        else
+        {
+            print "Nao e possivel colorir o grafo com duas cores";
+        }
+    }
+}

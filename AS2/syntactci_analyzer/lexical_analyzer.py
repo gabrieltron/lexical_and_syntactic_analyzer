@@ -1,3 +1,8 @@
+# João Gabriel Trombeta
+# Otto Menegasso Pires
+# Mathias
+# Wagner Braga dos Santos
+
 import automata
 
 class Lexical_Analyzer():
@@ -29,6 +34,8 @@ class Lexical_Analyzer():
             transitions[state]['&'] = []
         for transition in content[4:]:
             t = transition.split()
+            if not t:
+                break
             source = t[0]
             destiny = t[2]
             symbol = t[3]
@@ -42,15 +49,15 @@ class Lexical_Analyzer():
                 self.source_code[0] == ' ' or
                 self.source_code[0] == '\n' or
                 self.source_code[0] == '\t'
-            ): 
+            ):
             if self.source_code[0] == '\n':
                 self.lines_analyzed += 1
             self.source_code = self.source_code[1:]
 
-    def get_next_token(self):        
+    def get_next_token(self):
         if len(self.source_code) == 0:
             return ('$', '')
-        
+
         self.ignore_blanks()
 
         if len(self.source_code) == 0:

@@ -1,3 +1,8 @@
+# João Gabriel Trombeta
+# Otto Menegasso Pires
+# Mathias
+# Wagner Braga dos Santos
+
 import sys
 import lexical_analyzer as la
 import symbol_table
@@ -26,11 +31,11 @@ basics = {
 
 symbol_table = symbol_table.Symbol_Table(reserved_words, basics)
 
-source_path = sys.argv[1]
-automata_path = sys.argv[2]
+source_path = input("Type file path\n")
+automata_path = sys.argv[1]
 lexical_analyzer = la.Lexical_Analyzer(source_path, automata_path, symbol_table)
 
-grammar_path = sys.argv[3]
+grammar_path = sys.argv[2]
 syntactic_analyzer = sa.Syntactic_Analyzer(grammar_path, symbol_table)
 valid_word = syntactic_analyzer.parse_code(lexical_analyzer)
 

@@ -1,3 +1,8 @@
+# João Gabriel Trombeta
+# Otto Menegasso Pires
+# Mathias
+# Wagner Braga dos Santos
+
 import grammar
 import lexical_analyzer as la
 
@@ -134,7 +139,7 @@ class Syntactic_Analyzer:
                             for f in follow[symbol]:
                                 if f not in follow[prev_symbol]:
                                     follow[prev_symbol].add(f)
-                                    changed = True 
+                                    changed = True
 
         self.follow = follow
 
@@ -215,7 +220,7 @@ class Syntactic_Analyzer:
                 terminal = token[0]
                 word.append(terminal)
 
-                
+
             compare = stack.pop()
 
             #print(terminal)
@@ -223,7 +228,7 @@ class Syntactic_Analyzer:
             #if compare in self.table:
             #    print(self.table[compare])
             #print('---------')
-            
+
             if compare == terminal:
                 word = word[1:]
             elif compare == '$':
@@ -238,7 +243,7 @@ class Syntactic_Analyzer:
                     transition = self.table[compare][terminal]
                     if transition != 'sync':
                         transition = list(reversed(transition.split()))
-    
+
                         if transition != ['&']:
                             for symbol in transition:
                                 stack.append(symbol)

@@ -1,0 +1,143 @@
+class BreadthSearch
+{
+    class Queue
+    {
+        int queue[];
+        int size;
+
+        constructor()
+        {
+            size = 0;
+        }
+
+        int push(int i)
+        {
+            queue[size] = i;
+            size = size + 1;
+            return 0;
+        }
+
+        int pop()
+        {
+            int i, index;
+            index = size - 1;
+            i = queue[index];
+            size = size - 1;
+            return i;
+        }
+
+        int empty()
+        {
+            if (size == 0)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        int contains(int needle)
+        {
+            int i;
+            for (i = 0; i < size; i = i+1)
+            {
+                if (queue[i] == needle)
+                {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+    }
+
+    int adj[][];
+    int pos[];
+    int color[];
+
+    int search(int vertice)
+    {
+        int counter;
+        counter = 0;
+        Queue queue, visited;
+        visited = new Queue();
+        queue = new Queue();
+        int ret;
+        ret = queue.push_back(vertice);
+
+        for (;;) {
+            if (queue.empty())
+            {
+                break;
+            }
+
+            int vertice;
+            vertice = queue.pop();
+            counter = counter + 1;
+            r = visited.push(vertice);
+            int i;
+            for (i = 0; i < pos[vertice]; i = i+1)
+            {
+                int neighbour;
+                neighbour = adj[vertice][i];
+                if (visited.contains(neighbour) == 0) {
+                    r = queue.push(neighbour);
+                }
+            }
+        }
+
+        return counter;
+    }
+
+    int main() {
+        int n_vertex;
+        print "Digite o numero de vertices do grafo";
+        read n_vertex;
+
+        int vertex_counter;
+        for (vertex_counter = 0; vertex_counter < n_vertex; vertex_counter = vertex_counter + 1)
+        {
+            pos[vertex_counter] = 0;
+            color[vertex_counter] = 0;
+        }
+
+        int n_edges;
+        print "Dgite o numero de arestas do grafo";
+        read n_edges;
+
+        int edges_counter;
+        for (edges_counter = 0; edges_counter < n_edges; edges_counter = edges_counter + 1)
+        {
+            int from;
+            print "Digite o vértice de origem";
+            read from;
+
+            int to;
+            print "Digite o vértice de destino";
+            read to;
+
+            int n_adj_from;
+            n_adj_from = pos[from];
+            adj[from][n_adj_from] = to;
+            pos[from] = pos[from] + 1;
+
+            int n_adj_to;
+            n_adj_to = pos[to];
+            adj[to][n_adj_to] = from;
+            pos[to] = pos[to] + 1;
+        }
+
+        int visited_vertex;
+        visited_vertex = this.search(0);
+
+        if (visited_vertex == n_vertex)
+        {
+            print "O grafo e conexo";
+        }
+        else
+        {
+            print "O grafo nao e conexo";
+        }
+    }
+}

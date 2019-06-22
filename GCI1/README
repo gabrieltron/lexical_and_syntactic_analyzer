@@ -1,0 +1,2 @@
+Utilizada a biblioteca Lark-parser.
+Transforma a expressão em código de três endereços e verifica a memória necessária para variáveis declaradas

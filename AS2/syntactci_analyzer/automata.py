@@ -1,3 +1,8 @@
+# João Gabriel Trombeta
+# Otto Menegasso Pires
+# Mathias
+# Wagner Braga dos Santos
+
 #coding: utf-8
 class Automata():
     def __init__(self, states, alphabet, start_state, final_states, transitions):
@@ -44,6 +49,6 @@ class Automata():
 
             last_read = index
             current_state = next_state
-        
+
         is_final = current_state in self.final_states
         return (current_state, is_final,last_read)
