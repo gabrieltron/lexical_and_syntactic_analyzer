@@ -1,0 +1,435 @@
+A gramática LL(1) resultante é:
+<program> -> <class_decl> | &
+<class_list> -> <class_decl> | &
+<class_decl> -> class ident <extend> <class_body> <class_list>
+<extend> -> extends ident | &
+<class_body> -> { <class_list> <class_body2> }
+<class_body2> -> <type> <class_body3> | constructor <method_body> <construct_decls> <method_decls> | &
+<class_body3> -> ident <class_body4> | [ ] <vector> ident <method_body> <method_decls>
+<class_body4> -> <method_body> <method_decls> | <vector> <extra_var> ; <class_body2>
+<var_decls> -> <type> <var_decl> <var_decls> | &
+<var_decl> -> ident <vector> <extra_var>
+<extra_var> -> , ident <vector> <extra_var> | &
+<construct_decls> -> <construct_decl> <construct_decls> | &
+<method_decls> -> <method_decl> <method_decls> | &
+<var_or_atrib> -> <var_decl> | <atrib_stat>
+<type> -> <ctype> | ident
+<ctype> -> int | string
+<mdm_op> -> * | / | %
+<rel_op> -> > | < | <= | >= | == | !=
+<pm_op> -> + | -
+<pm_op?> -> <pm_op> | &
+<vector> -> [ ] <vector> | &
+<construct_decl> -> constructor <method_body>
+<method_decl> -> <type> <vector> ident <method_body>
+<method_body> -> ( <param_list> ) <statement>
+<param_list> -> <type> ident <vector> <extra_param> | &
+<extra_param> -> , <type> ident <vector> <extra_param> | &
+<statement> -> <ctype> <var_decl> ; | ident <var_or_atrib> ; | <print_stat> ; | <read_stat> ; | <if_stat> | <for_stat> | <return_stat> ; | <super_stat> ; | { <stat_list> } | break ; | ;
+<read_stat> -> read ident <lvalue>
+<print_stat> -> print <expression>
+<atrib_stat> -> <lvalue> = <expr_or_aloc>
+<super_stat> -> super ( <arg_list> )
+<expr_or_aloc> -> <expression> | <aloc_expression>
+<expression?> -> <expression> | &
+<return_stat> -> return <expression?>
+<else> -> else <statement> | &
+<if_stat> -> if ( <expression> ) <statement> <else>
+<for_stat> -> for ( <atrib_stat?> ; <expression?> ; <atrib_stat?> ) <statement>
+<stat_list> -> <statement> <stat_list> | &
+<lvalue> -> [ <expression> ] <lvalue> | . ident <arg_list?> <lvalue> | &
+<[expression]*> -> [ <expression> ] <[expression]*> | &
+<aloc_expr2> -> ident <aloc_expr3> | <ctype> [ <expression> ] <[expression]*>
+<aloc_expr3> -> ( <arg_list> ) | [ <expression> ] <[expression]*>
+<aloc_expression> -> new <aloc_expr2>
+<opt_expression> -> <rel_op> <num_expression> | &
+<expression> -> <num_expression> <opt_expression>
+<expression2> -> , <expression> <expression2> | &
+<opt_term> -> <pm_op> <term> <opt_term> | &
+<num_expression> -> <term> <opt_term>
+<unary_expr> -> <pm_op?> <factor>
+<unary_vazio> -> <mdm_op> <unary_expr> <unary_vazio> | &
+<term> -> <unary_expr> <unary_vazio>
+<factor> -> int-const | string-const | null | ident <lvalue> | ( <expression> )
+<arg_list> -> <expression> <expression2> | &
+<atrib_stat?> -> ident <atrib_stat> | &
+<arg_list?> -> ( <arg_list> ) | &
+
+Gramática é LL(1) para qualquer produção do tipo: A →  α|β  se:
+
+    1. First(α) ∩ First(β) = ∅  
+    2. α ⇒* ε  implica que NOT (β ⇒* ε) (e vice-versa) (No MÁXIMO um dos dois (α ou β ⇒* ε))  
+    3. SE α ⇒* ε então First(β) ∩ Follow(A) = ∅
+       SE β ⇒* ε então First(α) ∩ Follow(A) = ∅
+
+<type> -> <ctype> | ident
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST ident: {'ident'}  = ∅
+	2. <ctype> não deriva ε
+	   ident não deriva ε
+	3. nem α nem β derivam ε
+
+<var_or_atrib> -> <var_decl> | <atrib_stat>
+	1. FIRST <var_decl>: {'ident'} ∩  FIRST <atrib_stat>: {'[', '=', '.'}  = ∅
+	2. <var_decl> não deriva ε
+	   <atrib_stat> não deriva ε
+	3. nem α nem β derivam ε
+
+<class_body2> ⇒ <type> <class_body3> | constructor <method_body> <construct_decls> <method_decls> | &
+
+	1.  FIRST <type>: {'int', 'string', 'ident'} ∩  FIRST constructor: {‘constructor’}  = ∅
+	2.  <type> <class_body3> não deriva ε , pois: <type> ⇒ <ctype> | ident
+									    			      <ctype> ⇒ int | string
+
+	constructor <method_body> <construct_decls> <method_decls> não deriva ε
+	3. nem α nem β derivam ε
+
+
+<class_body3> ⇒ ident <class_body4> | [ ] <vector> ident <method_body> <method_decls>
+	1. FIRST ident: {'ident'} ∩  FIRST [: {‘[‘}  = ∅
+	2. ident <class_body4> não deriva ε
+	   [ ] <vector> ident <method_body> <method_decls> não deriva ε
+	3. nem α nem β derivam ε
+
+
+<class_body4> ⇒ <method_body> <method_decls> | <vector> <extra_var> ; <class_body2>
+	1. FIRST <method_body>:  {'('} ∩  FIRST <vector>: {'[', '&'}  = ∅
+	2. <method_body> <method_decls> não deriva ε, pois: <method_body> ⇒ ( <param_list> ) <statement> ≠ ε
+										         embora <method_decls> ⇒  <method_decl> <method_decls> | &
+	    <vector> <extra_var> ; <class_body2> não deriva ε
+	3. nem α nem β derivam ε
+
+
+<statement> ⇒ <ctype> <var_decl> ; | ident <var_or_atrib> ; | <print_stat> ; | <read_stat> ; | <if_stat> | <for_stat> | <return_stat> ; | <super_stat> ; | { <stat_list> } | break ; | ;
+
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST ident: {’ident’}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <print_stat>: {'print'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <read_stat>: {'read'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <if_stat>: {'if'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <for_stat>: {'for'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <return_stat>: {'return'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST <super_stat>: {'super'}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <ctype>: {'int', 'string'} ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST ident: {‘ident’}  ∩  FIRST <print_stat>: {‘print’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST <read_stat>: {‘read’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST <if_stat>: {‘if}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST <for_stat>: {‘for’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST <return_stat>: {‘return’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST ident: {‘ident’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST <read_stat>: {‘read’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST <if_stat>: {‘if}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST <for_stat>: {‘for’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST <return_stat>: {‘return’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <print_stat>: {'print'}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST <if_stat>: {‘if}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST <for_stat>: {‘for’}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST <return_stat>: {‘return’}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <read_stat>: {‘read’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST <for_stat>: {‘for’}  = ∅
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST <return_stat>: {‘return’}  = ∅
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <if_stat>:  {‘if’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <for_stat>: {‘for’}  ∩  FIRST <return_stat>: {‘return’}  = ∅
+	1. FIRST <for_stat>: {‘for’}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST <for_stat>: {‘for’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <for_stat>: {‘for’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <for_stat>: {‘for’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <return_stat>: {‘return’}  ∩  FIRST <super_stat>: {‘super’}  = ∅
+	1. FIRST <return_stat>: {‘return’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <return_stat>: {‘return’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <return_stat>: {‘return’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST <super_stat>: {‘super’}  ∩  FIRST { : {‘{’}  = ∅
+	1. FIRST <super_stat>: {‘super’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST <super_stat>: {‘super’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST { :  {‘{’}  ∩  FIRST break: {‘break’}  = ∅
+	1. FIRST { :  {‘{’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	1. FIRST break:  {‘break’}  ∩  FIRST ; : {‘;’}  = ∅
+
+	2.  nenhuma das produções de <statement> deriva ε
+	3.  nenhuma das produções deriva ε
+
+
+<expr_or_aloc> ⇒ <expression> | <aloc_expression>
+	1. FIRST <expression>’:  {'+', '(', 'string-const', 'null', 'ident', 'int-const', '-'} ∩  FIRST <aloc_expression>: {'new'}  = ∅
+	2.  <expression> não deriva ε, pois: <expression> ⇒ <num_expression> <opt_expression> pois:
+												<opt_expression> ⇒ <rel_op> <num_expression> | & mas:
+												<num_expression> ⇒ <term> <opt_term> não deriva ε pois:
+													<opt_term>  ⇒ <pm_op> <term> <opt_term> | & mas:
+													<term> ⇒ <unary_expr> <unary_vazio> não deriva ε pois:
+														<unary_vazio> ⇒ <mdm_op> <unary_expr> <unary_vazio> | & mas:
+														<unary_expr>  ⇒ <pm_op?> <factor> não deriva ε pois:
+															<pm_op?>  ⇒ <pm_op> | & mas:
+															<factor> ⇒ int-const | string-const | null | ident <lvalue> | ( <expression> ) não deriva ε
+	    <aloc_expression> não deriva ε, pois: <aloc_expression> -> new <aloc_expr2> não deriva ε
+
+	 3. nem α nem β derivam ε
+
+
+<aloc_expr2> ⇒ ident <aloc_expr3> | <ctype> [ <expression> ] <[expression]*>
+	1. FIRST ident:  {‘ident’} ∩  FIRST <ctype>: {'int', 'string'}  = ∅
+	2.   ident <aloc_expr3> não deriva ε
+	      <ctype> [ <expression> ] <[expression]*>  não deriva ε
+
+	3. nem α nem β derivam ε
+
+<aloc_expr3> -> ( <arg_list> ) | [ <expression> ] <[expression]*>
+	1. FIRST First(α) ∩ First(β) para cada par de produções = ∅  (trivial)
+	2.  nenhuma das produções de <ctype> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<lvalue> ⇒ [ <expression> ] <lvalue> | . ident <arg_list?> <lvalue> | &
+	1. FIRST [ : {‘[‘} ∩  FIRST . : {‘.‘}  = ∅
+
+	2.   [ <expression> ] <lvalue> não deriva ε
+	       . ident <arg_list?> <lvalue> não deriva ε
+
+	3. nem α nem β derivam ε
+
+Verificar que as demais produções da gramática atendem esses 3 critérios é trivial, e portanto, a gramática é LL(1):
+
+<factor> ⇒ int-const | string-const | null | ident <lvalue> | ( <expression> )
+	1. FIRST First(α) ∩ First(β) para cada par de produções = ∅
+	2.  nenhuma das produções de <factor> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<ctype> -> int | string
+	1. FIRST First(α) ∩ First(β) para cada par de produções α e β  = ∅
+	2.  nenhuma das produções de <ctype> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<mdm_op> -> * | / | %
+	1. FIRST First(α) ∩ First(β) para cada par de produções α e β = ∅
+	2.  nenhuma das produções de <mdm_op> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<rel_op> -> > | < | <= | >= | == | !=
+	1. FIRST First(α) ∩ First(β) para cada par de produções α e β  = ∅
+	2.  nenhuma das produções de <rel_op> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<pm_op> -> + | -
+	1. FIRST First(α) ∩ First(β) para cada par de produções α e β = ∅
+	2.  nenhuma das produções de <pm_op> deriva ε
+	3.  nenhuma das produções deriva ε
+
+<program> -> <class_decl> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<class_list> -> <class_decl> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<class_decl> -> class ident <extend> <class_body> <class_list>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<extend> -> extends ident | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<class_body> -> { <class_list> <class_body2> }
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<var_decls> -> <type> <var_decl> <var_decls> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<var_decl> -> ident <vector> <extra_var>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<extra_var> -> , ident <vector> <extra_var> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<construct_decls> -> <construct_decl> <construct_decls> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<method_decls> -> <method_decl> <method_decls> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<pm_op?> -> <pm_op> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<vector> -> [ ] <vector> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<construct_decl> -> constructor <method_body>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<method_decl> -> <type> <vector> ident <method_body>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<method_body> -> ( <param_list> ) <statement>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<param_list> -> <type> ident <vector> <extra_param> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<extra_param> -> , <type> ident <vector> <extra_param> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<read_stat> -> read ident <lvalue>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<print_stat> -> print <expression>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<atrib_stat> -> <lvalue> = <expr_or_aloc>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<super_stat> -> super ( <arg_list> )
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<expression?> -> <expression> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<return_stat> -> return <expression?>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<else> -> else <statement> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<if_stat> -> if ( <expression> ) <statement> <else>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<for_stat> -> for ( <atrib_stat?> ; <expression?> ; <atrib_stat?> ) <statement>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<stat_list> -> <statement> <stat_list> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<[expression]*> -> [ <expression> ] <[expression]*> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<aloc_expression> -> new <aloc_expr2>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<opt_expression> -> <rel_op> <num_expression> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<expression> -> <num_expression> <opt_expression>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<expression2> -> , <expression> <expression2> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<opt_term> -> <pm_op> <term> <opt_term> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<num_expression> -> <term> <opt_term>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<unary_expr> -> <pm_op?> <factor>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<unary_vazio> -> <mdm_op> <unary_expr> <unary_vazio> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<term> -> <unary_expr> <unary_vazio>
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<arg_list> -> <expression> <expression2> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<atrib_stat?> -> ident <atrib_stat> | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
+<arg_list?> -> ( <arg_list> ) | &
+	1. β ausente
+	2. β ausente
+	3. β ausente
+
