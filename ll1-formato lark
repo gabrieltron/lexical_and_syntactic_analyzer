@@ -1,33 +1,93 @@
-program : class_decl 			-> program
-	| 				-> program
-
-class_decl : "class" IDENT extend class_body program -> class_decl
-extend : "extends" IDENT		-> extends
-	|				-> extends
-class_body : "{" class_list class_body2 "}" -> class_body
-class_body2 : type class_body3 						->
-	| "constructor" method_body construct_decls method_decls	->
-	| 								->
-class_body3 : IDENT class_body4 					->
-	| "[" INT-CONST "]" vector IDENT method_body method_decls 	->
-class_body4 : method_body method_decls 		->
-	| vector extra_var ";" class_body2 	->
-var_decls : type var_decl var_decls 	->
-	| 				->
+statement : ctype var_decl ";" ->
+	| IDENT  var_or_atrib ";" ->
+	| print_stat ";" ->
+	| read_stat ";" ->
+	| if_stat 	->
+	| for_stat 	->
+	| return_stat ";" ->
+	| super_stat ";" ->
+	| "{" stat_list "}" ->
+	| break ";" ->
+	| ; ->
 
 var_decl : IDENT vector extra_var 	->
 
 extra_var : "," IDENT vector extra_var 	->
 	|				->
 
-construct_decls : construct_decl construct_decls 	->
-	| 						->
-
-method_decls : method_decl method_decls ->
-	|				->
-
 var_or_atrib -> var_decl	->
 	| atrib_stat		->
+
+atrib_stat : lvalue "=" expr_or_aloc 	->
+
+print_stat : "print" expression 	->
+
+read_stat : "read" IDENT lvalue 	->
+
+if_stat : "if" "(" expression ")" statement else ->
+
+else : "else" statement -> 
+	|		->
+
+for_stat : for "(" atrib_stat ";" expression ";" atrib_stat ")" statement -> 
+
+return_stat : "return" expression? ->
+
+super_stat : super "(" arg_list ")" 	->
+
+stat_list : statement stat_list ->
+	|			->
+
+expr_or_aloc: expression 	->
+	| aloc_expression 	->
+
+expression : num_expression opt_expression 	-> //TODO
+
+expression2 : "," expression expression2 	->
+	| 					->
+
+expression? : expression 	->
+	|			->
+
+expression0n : "[" expression "]" expression0n 	->
+	| 						->
+
+aloc_expression : "new" aloc_expr2
+
+aloc_expr2 : IDENT aloc_expr3 ->
+	| ctype "[" expression "]" expression0n ->
+
+aloc_expr3 : "(" arg_list ")" ->
+	| "[" expression " ]" expression0n ->
+
+arg_list : expression expression2 	->
+	| 				->
+
+arg_list? : "(" arg_list ")" 	->
+	|			->
+
+opt_expression : rel_op num_expression 	->
+	|				->
+
+opt_term : pm_op term opt_term 	->
+	|			->
+
+num_expression : term opt_term ->
+
+unary_expr : pm_op? factor ->
+
+unary_vazio : mdm_op unary_expr unary_vazio 	->
+	| 					->
+
+term : unary_expr unary_vazio
+
+factor: INT-CONST 		->
+	| STRING-CONST 		->
+	| "null" 		->
+	| IDENT lvalue 		->
+	| "(" expression ")" 	->
+
+
 
 type : ctype 	->
 	| IDENT ->
@@ -55,102 +115,6 @@ pm_op? : pm_op 	->
 vector : "[" INT-CONST "]" vector 	->
 	| 				->
 
-contruct_decl : "constructor" method_body 	->
-
-method_decl : type vector IDENT method_body 	->
-
-method_body : "(" param_list ")" statement 	->
-
-param_list : type IDENT vector extra_param 	->
-	| 					->
-
-extra_param : "," type IDENT vector extra_param ->
-	|					->
-
-statement : ctype var_decl ";" ->
-	| IDENT  var_or_atrib ";" ->
-	| print_stat ";" ->
-	| read_stat ";" ->
-	| if_stat 	->
-	| for_stat 	->
-	| retur_stat ";" ->
-	| super_stat ";" ->
-	| "{" stat_list "}" ->
-	| break ";" ->
-	| ; ->
-
-read_stat : "read" IDENT lvalue 	->
-
-print_stat : "print" expression 	->
-
-atrib_stat : lvalue "=" expr_or_aloc 	->
-
-super_stat : super "(" arg_list ")" 	->
-
-expr_or_aloc: expression 	->
-	| aloc_expression 	->
-
-expression? : expression 	->
-	|			->
-
-return_stat : "return" expression? ->
-
-else : "else" statement -> 
-	|		->
-
-if_stat : "if" "(" expression ")" statement else ->
-
-for_stat : for "(" atrib_stat? ";" expression? ";" atrib_stat? ")" statement -> //todo
-
-stat_list : statement stat_list ->
-	|			->
-
 lvalue : "[" INT-CONST "]" lvalue 	->
 	| "." IDENT arg_list? lvalue 	->
 	|				->
-
-[expression]* : "[" expression "]" [expression]* 	->
-	| 						->
-
-aloc_expr2 : IDENT aloc_expr3 ->
-	| ctype "[" expression "]" [expression]* ->
-
-aloc_expr3 : "(" arg_list ")" ->
-	| "[" expression " ]" [expression]* ->
-
-aloc_expression : "new" aloc_expr2
-
-opt_expression : rel_op num_expression 	->
-	|				->
-
-expression : num_expression opt_expression 	->
-
-expression2 : "," expression expression2 	->
-	| 					->
-
-opt_term : pm_op term opt_term 	->
-	|			->
-
-num_expression : term opt_term ->
-
-unary_expr : pm_op? factor ->
-
-unary_vazio : mdm_op unary_expr unary_vazio 	->
-	| 					->
-
-term : unary_expr unary_vazio
-
-factor: INT-CONST 		->
-	| STRING-CONST 		->
-	| "null" 		->
-	| IDENT lvalue 		->
-	| "(" expression ")" 	->
-
-arg_list : expression expression2 	->
-	| 				->
-
-atrib_stat? : IDENT atrib_stat 	->
-	|			->
-
-arg_list? : "(" arg_list ")" 	->
-	|			-
