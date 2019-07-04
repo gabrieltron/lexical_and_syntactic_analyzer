@@ -3,6 +3,7 @@
 # Mathias
 # Wagner Braga dos Santos
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from lark import Lark, v_args, Visitor, Tree, Token
 from typing import Any, Dict, Tuple, List, Set
@@ -81,10 +82,10 @@ lark_grammar = Lark('''\
                                                                 // var_decl.ident = ident.lexval
                                                                 // update_symbol_table(var_decl.ident, var_decl.dimension)
 
-    extra_var : "," IDENT vector extra_var  -> var_decl         // same as above
-                |                           -> var_decl
+    extra_var : "," IDENT vector extra_var  -> extra_var         // same as above
+                |                           
 
-    var_or_atrib.1 : var_decl
+    var_or_atrib.1 : var_decl   -> inherit_type
             | atrib_stat	
 
     atrib_stat : lvalue "=" expression 
@@ -233,31 +234,57 @@ class CalculateTree(Visitor):
 
     def for_stat(self, tree, attributes):
         attributes[('statement', 'in_loop')] = True
+        
+        symbol_table = attributes[('for_stat', 'symbol_table')]
+        attributes[('statement', 'symbol_table')] = symbol_table
 
     def if_stat(self, tree, attributes):
         if ('if_stat', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
             attributes[('else_stat', 'in_loop')] = True
 
+        symbol_table = attributes[('if_stat', 'symbol_table')]
+        attributes[('statement', 'symbol_table')] = symbol_table
+        attributes[('else_stat', 'symbol_table')] = symbol_table
+
     def else_stat(self, tree, attributes):
         if ('else_stat', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
 
+        symbol_table = attributes[('else_stat', 'symbol_table')]
+        attributes[('statement', 'symbol_table')] = symbol_table
+
     def statement(self, tree, attributes):
         children = {x.data for x in tree.children if isinstance(x, Tree)}
         tokens = {x.value for x in tree.children if isinstance(x, Token)}
+        
+        # Check loop
         if ('statement', 'in_loop') in attributes:
             for child in children:
                 attributes[(child, 'in_loop')] = True
-
         if 'break' in tokens:
             if ('statement', 'in_loop') not in attributes:
                 self.errors.append('Break outside for structure in line {}'.format(tree.children[0].line))
+
+        # Pass on Symbol Table
+        symbol_table = attributes[('statement', 'symbol_table')]
+        if 'inherit_type' in children:
+            for child in children:
+                attributes[(child, 'symbol_table')] = symbol_table
+        else:
+            empty_st = deepcopy(symbol_table)
+            empty_st.variables = {}
+            for child in children:
+                attributes[(child, 'symbol_table')] = empty_st
 
     def stat_list(self, tree, attributes):
         if ('stat_list', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
             attributes[('stat_list\'', 'in_loop')] = True
+
+        symbol_table = attributes[('stat_list', 'symbol_table')]
+        attributes[('statement', 'symbol_table')] = symbol_table
+        attributes[('stat_list\'', 'symbol_table')] = symbol_table
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
@@ -395,6 +422,11 @@ class CalculateTree(Visitor):
     def inherit_type(self, tree, attributes):
         attributes[('var_decl', 'og_type')] = attributes[('ctype', 'type')]
 
+        symbol_table = attributes[('inherit_type', 'symbol_table')]
+        attributes[('var_decl', 'symbol_table')] = symbol_table
+
+        attributes[('var_decl', 'counter')] = 0
+
     def ctype(self, tree, attributes):
         token_value = tree.children[0].value
         attributes[('ctype', 'type')] = token_value
@@ -409,7 +441,35 @@ class CalculateTree(Visitor):
         attributes[('var_decl', 'dimension')] = attributes[('vector','dimension')]
         attributes[('var_decl','n_elements')] = attributes[('vector','n_elements')]
         attributes[('extra_var','og_type')] = attributes[('var_decl','og_type')]
-        self.update_symbol_table(id, attributes[('extra_var','og_type')], attributes[('vector','dimension')], attributes[('vector','n_elements')])
+
+        counter = attributes[('var_decl', 'counter')]
+        symbol_table = attributes[('var_decl','symbol_table')]
+        if counter == 0:
+            self.update_symbol_table(symbol_table, id, attributes[('extra_var','og_type')], attributes[('vector','dimension')], attributes[('vector','n_elements')])
+        attributes[('var_decl', 'counter')] += 1
+
+        attributes[('extra_var', 'counter')] = 0
+        attributes[('extra_var', 'symbol_table')] = symbol_table
+
+    def extra_var(self, tree, attributes):
+        if not tree.children:
+            return None
+
+        tokens = [token for token in tree.children if isinstance(token, Token)]
+        id = tokens[0].value if len(tokens) == 1 else tokens[1].value
+        attributes[('extra_var', 'ident')] = id
+        attributes[('extra_var', 'dimension')] = attributes[('vector','dimension')]
+        attributes[('extra_var','n_elements')] = attributes[('vector','n_elements')]
+        attributes[('extra_var\'','og_type')] = attributes[('extra_var','og_type')]
+
+        counter = attributes[('extra_var', 'counter')]
+        symbol_table = attributes[('extra_var','symbol_table')]
+        if counter == 0:
+            self.update_symbol_table(symbol_table, id, attributes[('extra_var','og_type')], attributes[('vector','dimension')], attributes[('vector','n_elements')])
+        attributes[('extra_var', 'counter')] += 1
+
+        attributes[('extra_var\'', 'counter')] = 0
+        attributes[('extra_var\'', 'symbol_table')] = symbol_table        
 
     def vector(self, tree, attrs):
         if not tree.children:
@@ -421,13 +481,16 @@ class CalculateTree(Visitor):
             attrs[('vector'), ('dimension')] = attrs[('vector\''), ('dimension')] + 1
             attrs[('vector'), ('n_elements')] = attrs[('vector\'','n_elements')] * size
 
-    def update_symbol_table(self, ident, _type, dimension = 0, n_elements = 0):
-        type = self.symbol_table.types[_type]
+    def update_symbol_table(self, symbol_table, ident, _type, dimension = 0, n_elements = 0):
+        if ident in symbol_table.variables:
+            self.errors.append('Error: redeclaration of {}'.format(ident))
+        
+        type = symbol_table.types[_type]
         if dimension == 0:
-            self.symbol_table.variables[ident] = TableEntry(type)
+            symbol_table.variables[ident] = TableEntry(type)
         else:
             array = Array(type, dimension, n_elements*type.required_memory)
-            self.symbol_table.variables[ident] = TableEntry(array)
+            symbol_table.variables[ident] = TableEntry(array)
 
 
 def three_address_expression(
@@ -458,7 +521,7 @@ def three_address_expression(
 types = {
     'int': BaseType('int', 4),
     'char': BaseType('char', 1),
-    'str': BaseType('str', 0)
+    'string': BaseType('string', 0)
     }
 symbol_table = SymbolTable(types)
 visitor = CalculateTree(symbol_table)
@@ -467,7 +530,7 @@ text_path = input()
 text_file = open(text_path, 'r')
 text = text_file.read()
 tree = lark_grammar.parse(text)
-visitor.visit(tree)
+visitor.visit(tree, {('statement', 'symbol_table') : symbol_table})
 if visitor.errors:
     for error in visitor.errors:
         print(error)
