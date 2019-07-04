@@ -253,6 +253,40 @@ class CalculateTree(Visitor):
 
     def unary_vazio(self, tree, attributes):#ok
         if not tree.children:
+            attributes[('unary_vazio', 'val')] = attributes[('unary_vazio', 'left_val')]
+            attributes[('unary_vazio', 'type')] = attributes[('unary_vazio', 'left_type')]
+            attributes[('unary_vazio', 'tree')] = attributes[('unary_vazio', 'left_tree')] 
+        else:
+            op = attributes[('mdm_op', 'op')]
+            right_val = attributes[('unary_expr','val')]
+            right_type = attributes[('unary_expr','type')]
+            right_tree = attributes[('unary_expr', 'tree')]
+            left_val = attributes[('unary_vazio', 'left_val')] 
+            left_type = attributes[('unary_vazio', 'left_type')] 
+            left_tree = attributes[('unary_vazio', 'left_tree')]
+
+            root = EvaluationTree(op)           
+            root.left = left_tree
+            root.right = right_tree
+
+            if (right_type != 'int' or left_type != 'int'):
+                print("Type error exception: this expression do not support the types given")
+            else:
+                if op == "*":
+                    result = int(left_val) * int(right_val)
+                elif op == "/":
+                    result = int(left_val) // int(right_val)
+                elif op == "%":
+                    result = int(left_val) % int(right_val)
+                attributes[('unary_vazio', 'left_val')] = result
+                attributes[('unary_vazio', 'left_type')] = left_type
+                attributes[('unary_vazio', 'val')] = attributes[('unary_vazio\'', 'val')]
+                attributes[('unary_vazio', 'type')] = attributes[('unary_vazio\'','type')]  
+
+            attributes[('unary_vazio', 'left_tree')] = root
+
+    def unary_vazio(self, tree, attributes):#ok
+        if not tree.children:
             return None
 
         op = tree.children[0].value
@@ -268,6 +302,29 @@ class CalculateTree(Visitor):
             root.right = operator
 
         attributes[('unary_vazio', 'tree')] = root
+        #if not tree.children:
+        #    pass
+        #else:
+        #    op = tree.children[0].value
+        #    print(op)
+        #    print(tree.pretty())
+        #    right_val = attributes[('unary_expr','val')]
+        #    right_type = attributes[('unary_expr','type')]
+        #    left_val = attributes['unary_vazio', 'left_val'] 
+        #    left_type = attributes['unary_vazio', 'left_type'] 
+        #    if (right_type != 'int' or left_type != 'int'):
+        #        print("Type error exception: this expression do not support the types given")
+        #    else:
+        #        if op == "*":
+        #            result = int(left_val) * int(right_val)
+        #        elif op == "/":
+        #            result = int(left_val) // int(right_val)
+        #        elif op == "%":
+        #            result = int(left_val) % int(right_val)
+        #        attributes[('unary_vazio', 'left_val')] = result
+        #        attributes[('unary_vazio', 'left_type')] = left_type
+        #        attributes[('unary_vazio', 'val')] = attributes[('unary_vazio\'', 'val')]
+        #        attributes[('unary_vazio', 'type')] = attributes[('unary_vazio\'','type')]  
 
     def term(self, tree, attributes):#ok
         if tree.children[1].children:
@@ -342,6 +399,7 @@ class CalculateTree(Visitor):
         else:
             array = Array(type, dimension, n_elements*type.required_memory)
             self.symbol_table.variables[ident] = TableEntry(array)
+
 
 def three_address_expression(
     tree : EvaluationTree, operators: Set[str], code_list: List[str], counter: List[int] = [0]
