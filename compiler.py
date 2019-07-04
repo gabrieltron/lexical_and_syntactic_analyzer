@@ -61,121 +61,109 @@ class SymbolTable():
 
 lark_grammar = Lark('''\
 
-	statement : ctype var_decl ";" 												->statement
-		| IDENT  var_or_atrib ";"												->statement
-		| print_stat ";"														->statement
-		| read_stat ";" 														->statement
-		| if_stat 																->statement
-		| for_stat 																->statement
-		| return_stat ";" 														->statement
-		| super_stat ";" 														->statement
-		| "{" stat_list "}" 													->statement
-		| break ";"																->statement
-		| ; 																	->statement
+    statement : dec ";"
+            | IDENT  var_or_atrib ";"
+            | print_stat ";" 
+            | read_stat ";" 
+            | if_stat 	
+            | for_stat 	
+            | return_stat ";" 
+            | "{" stat_list "}" 
+            | "break" ";" 
+            | ";" 
 
-	var_decl : IDENT vector extra_var 											->var_decl //DONE
+    dec.2 : ctype var_decl  -> inherit_type
 
-	extra_var : "," IDENT vector extra_var 										->extra_var //DONE
-		|																		->extra_var
+    var_decl : IDENT vector extra_var       -> var_decl         // var_decl.dimension = vector.dimension
+                                                                // extra_var.og_type = var_decl.og_type
+                                                                // var_decl.required_size = vector.required_size
+                                                                // var_decl.dimension = vector.dimension
+                                                                // var_decl.ident = ident.lexval
+                                                                // update_symbol_table(var_decl.ident, var_decl.dimension)
 
-	var_or_atrib -> var_decl													->var_or_atrib
-		| atrib_stat															->var_or_atrib
+    extra_var : "," IDENT vector extra_var  -> var_decl         // same as above
+                |                           -> var_decl
 
-	atrib_stat : lvalue "=" expr_or_aloc 										->atrib_stat
+    var_or_atrib.1 : var_decl
+            | atrib_stat	
 
-	print_stat : "print" expression 											->print_stat
+    atrib_stat : lvalue "=" expression 
 
-	read_stat : "read" IDENT lvalue 											->read_stat
+    print_stat : "print" expression 
 
-	if_stat : "if" "(" expression ")" statement else 							->if_stat
+    read_stat : "read" IDENT lvalue 
 
-	else : "else" statement 													->else
-		|																		->else
+    if_stat : "if" "(" expression ")" statement else
 
-	for_stat : for "(" atrib_stat ";" expression ";" atrib_stat ")" statement 	->for_stat
+    else : "else" statement
+            |	
 
-	return_stat : "return" expression? 											->return_stat
+    for_stat : "for" "(" IDENT atrib_stat ";" expression ";" IDENT atrib_stat ")" statement 
 
-	super_stat : super "(" arg_list ")" 										->super_stat
+    return_stat : "return" expressionq 
 
-	stat_list : statement stat_list 											->stat_list
-		|																		->stat_list
+    super_stat : "super" "(" arg_list ")" 
 
-	expr_or_aloc: expression 													->expr_or_aloc
-		| aloc_expr 															->expr_or_aloc
+    stat_list : statement stat_list
+            |		
 
-	expression : num_expression opt_expression 									->expression
+    expression : num_expression opt_expression  //TODO
 
-	expression2 : "," expression expression2 									->expression2
-		| 																		->expression2
+    expression2 : "," expression expression2 
+            | 	
 
-	expression? : expression 													->expression?
-		|																		->expression?
+    expressionq : expression 	
+            |					 
 
-	expression0n : "[" expression "]" expression0n 								->expression0n
-		| 																		->expression0n
+    arg_list : expression expression2 	
+            | 				
 
-	aloc_expr : "new" aloc_expr2												->aloc_expr
+    arg_listq : "(" arg_list ")" 	
+            |			
 
-	aloc_expr2 : IDENT aloc_expr3 												->aloc_expr2
-		| ctype "[" expression "]" expression0n 								->aloc_expr2
+    opt_expression : ">" num_expression 	
+            | "<"  num_expression        	
+            | "<=" num_expression        	
+            | ">=" num_expression       	
+            | "==" num_expression        	
+            | "!=" num_expression  
+            |      	
 
-	aloc_expr3 : "(" arg_list ")" 												->aloc_expr3
-		| "[" expression " ]" expression0n 										->aloc_expr3
+    opt_term : "+" term opt_term                -> opt_term
+            |  "-" term opt_term                -> opt_term
+            |                                   -> opt_term
 
-	arg_list : expression expression2 											->arg_list
-		| 																		->arg_list
+    num_expression : term opt_term              -> num_expression
 
-	arg_list? : "(" arg_list ")" 												->arg_list?
-		|																		->arg_list?
+    unary_expr : factor                         -> unary_expr
+            | "+" factor                        -> unary_expr
+            | "-" factor                        -> unary_expr
 
-	opt_expression : rel_op num_expression 										->opt_expression 
-		|																		->opt_expression
+    unary_vazio : "*" unary_expr unary_vazio    -> unary_vazio
+            | "/" unary_expr unary_vazio        -> unary_vazio
+            | "%" unary_expr unary_vazio        -> unary_vazio
+            |                                   -> unary_vazio
+    term : unary_expr unary_vazio               -> term
 
-	opt_term : pm_op term opt_term 												->opt_term //redo
-		|																		->opt_term
+    factor : INT_CONSTANT                       -> factor
+            | STRING_CONSTANT                   -> factor
+            | "null"                            -> factor
+            | IDENT lvalue                      -> factor
+            | "(" exps ")"                      -> factor
 
-	num_expression : term opt_term 												->num_expression//DONE
+    ctype : "int"                               -> ctype            // ctype.type = int
+            | "string"                          -> ctype            // ctype.type = string
 
-	unary_expr : pm_op? factor 													->unary_expr //redo
 
-	unary_vazio : mdm_op unary_expr unary_vazio 								->unary_vazio //redo
-		| 																		->unary_vazio
+    lvalue : "[" INT_CONSTANT "]" lvalue        -> lvalue
+            | "." IDENT arg_list? lvalue 	    
+            |                                   -> lvalue
 
-	term : unary_expr unary_vazio												->term //DONE
 
-	factor: INT-CONSTANT 														->factor //DONE
-		| STRING-CONSTANT														->factor
-		| "null" 																->factor
-		| IDENT lvalue 															->factor
-		| "(" expression ")" 													->factor
+    vector : "[" INT_CONSTANT "]" vector        -> vector           // vector.dimension = vector'.dimension + 1
+            |                                   -> vector           // vector.required_size = vector'.required_size * int-constant
 
-	ctype : "int" 																->ctype //DONE
-		| "string" 																->ctype
-
-	mdm_op : "*" 																->mdm_op
-		| "/" 																	->mdm_op
-		| "%" 																	->mdm_op
-
-	rel_op : ">" 																->rel_op
-		| "<" 																	->rel_op
-		| "<=" 																	->rel_op
-		| ">=" 																	->rel_op
-		| "==" 																	->rel_op
-		| "!=" 																	->rel_op
-
-	pm_op : "+"																	->pm_op
-		| "-"																	->pm_op
-
-	pm_op? : pm_op 																->pm_op?
-		|																		->pm_op?
-
-	vector : "[" INT-CONSTANT "]" vector 										->vector //redo
-		| 																		->vector
-
-    lvalue : "[" INT_CONSTANT "]" lvalue        								-> lvalue //redo
-            |                                   								-> lvalue 
-
+    exps : term opt_term                        -> num_expression
 
     %import common.INT -> INT_CONSTANT
     %import common.ESCAPED_STRING -> STRING_CONSTANT
@@ -265,60 +253,21 @@ class CalculateTree(Visitor):
 
     def unary_vazio(self, tree, attributes):#ok
         if not tree.children:
-            attributes[('unary_vazio', 'val')] = attributes[('unary_vazio', 'left_val')]
-            attributes[('unary_vazio', 'type')] = attributes[('unary_vazio', 'left_type')]
-            attributes[('unary_vazio', 'tree')] = attributes[('unary_vazio', 'left_tree')] 
+            return None
+
+        op = tree.children[0].value
+        root = EvaluationTree(op)
+
+        root.left = attributes[('unary_vazio', 'left')]
+        operator = attributes[('unary_expr', 'tree')]
+        if tree.children[2].children:
+            attributes[('unary_vazio\'', 'left')] = operator
+            right_tree = attributes[('unary_vazio\'', 'tree')]
+            root.right = right_tree
         else:
-	        op = attributes[('mdm_op', 'op')]
-	        right_val = attributes[('unary_expr','val')]
-            right_type = attributes[('unary_expr','type')]
-            right_tree = attributes[('unary_expr', 'tree')]
-            left_val = attributes[('unary_vazio', 'left_val')] 
-            left_type = attributes[('unary_vazio', 'left_type')] 
-	        left_tree = attributes[('unary_vazio', 'left_tree')]
+            root.right = operator
 
-	        root = EvaluationTree(op)	        
-	        root.left = left_tree
-	        root.right = right_tree
-
-	        if (right_type != 'int' or left_type != 'int'):
-                print("Type error exception: this expression do not support the types given")
-            else:
-                if op == "*":
-                    result = int(left_val) * int(right_val)
-                elif op == "/":
-                    result = int(left_val) // int(right_val)
-                elif op == "%":
-                    result = int(left_val) % int(right_val)
-                attributes[('unary_vazio', 'left_val')] = result
-                attributes[('unary_vazio', 'left_type')] = left_type
-                attributes[('unary_vazio', 'val')] = attributes[('unary_vazio\'', 'val')]
-                attributes[('unary_vazio', 'type')] = attributes[('unary_vazio\'','type')]  
-
-	        attributes[('unary_vazio', 'left_tree')] = root
-
-    def unary_vazio(self, tree, attributes):#ok
-        if not tree.children:
-            
-        else:
-            op = tree.children[0].value
-            right_val = attributes[('unary_expr','val')]
-            right_type = attributes[('unary_expr','type')]
-            left_val = attributes['unary_vazio', 'left_val'] 
-            left_type = attributes['unary_vazio', 'left_type'] 
-            if (right_type != 'int' or left_type != 'int'):
-                print("Type error exception: this expression do not support the types given")
-            else:
-                if op == "*":
-                    result = int(left_val) * int(right_val)
-                elif op == "/":
-                    result = int(left_val) // int(right_val)
-                elif op == "%":
-                    result = int(left_val) % int(right_val)
-                attributes[('unary_vazio', 'left_val')] = result
-                attributes[('unary_vazio', 'left_type')] = left_type
-                attributes[('unary_vazio', 'val')] = attributes[('unary_vazio\'', 'val')]
-                attributes[('unary_vazio', 'type')] = attributes[('unary_vazio\'','type')]  
+        attributes[('unary_vazio', 'tree')] = root
 
     def term(self, tree, attributes):#ok
         if tree.children[1].children:
@@ -350,8 +299,9 @@ class CalculateTree(Visitor):
         tokens = [token for token in tree.children if isinstance(token, Token)]
 
         if len(tokens) == 1:
-            token_value = tokens[0].value
-            node_name = token_value + attributes[('lvalue', 'index')]
+            node_name = tokens[0].value
+            if ('lvalue', 'index') in attributes:
+                node_name += attributes[('lvalue', 'index')]
             attributes[('factor', 'tree')] = EvaluationTree(node_name)
         elif tokens[0] == '(':
             attributes[('factor', 'tree')] = attributes[('num_expression', 'tree')]
@@ -393,7 +343,6 @@ class CalculateTree(Visitor):
             array = Array(type, dimension, n_elements*type.required_memory)
             self.symbol_table.variables[ident] = TableEntry(array)
 
-
 def three_address_expression(
     tree : EvaluationTree, operators: Set[str], code_list: List[str], counter: List[int] = [0]
     ) -> str:
@@ -419,29 +368,22 @@ def three_address_expression(
     return tree.data
 
 
-text = input('Insira entrada no formato "EXPS; DEC"\n')
 types = {
     'int': BaseType('int', 4),
     'char': BaseType('char', 1),
     'str': BaseType('str', 0)
     }
 symbol_table = SymbolTable(types)
-
-exps, decl = text.split('; ')
-
-tree = lark_grammar.parse(exps)
 visitor = CalculateTree(symbol_table)
-print('Printing three address code')
+
+text_path = input()
+text_file = open(text_path, 'r')
+text = text_file.read()
+tree = lark_grammar.parse(text)
 visitor.visit(tree)
+
 three_address_code = []
 three_address_expression(visitor.eval_tree, {'+', '-', '*', '/', '%'}, three_address_code)
 for code in three_address_code:
     print(code)
-print()
-
-tree = lark_grammar.parse(decl)
-visitor = CalculateTree(symbol_table)
-print('Required memory')
-visitor.visit(tree)
-print(symbol_table.pretty())
 print()
