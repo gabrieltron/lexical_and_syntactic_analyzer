@@ -61,16 +61,16 @@ class SymbolTable():
 
 lark_grammar = Lark('''\
 
-    statement : dec ";"
-            | IDENT  var_or_atrib ";"
-            | print_stat ";" 
-            | read_stat ";" 
-            | if_stat 	
-            | for_stat 	
-            | return_stat ";" 
-            | "{" stat_list "}" 
-            | "break" ";" 
-            | ";" 
+    statement : dec ";"                 -> statement
+            | IDENT  var_or_atrib ";"   -> statement
+            | print_stat ";"            -> statement
+            | read_stat ";"             -> statement
+            | if_stat 	                -> statement
+            | for_stat 	                -> statement
+            | return_stat ";"           -> statement
+            | "{" stat_list "}"         -> statement
+            | "break" ";"               -> statement
+            | ";"                       -> statement
 
     dec.2 : ctype var_decl  -> inherit_type
 
@@ -93,18 +93,18 @@ lark_grammar = Lark('''\
 
     read_stat : "read" IDENT lvalue 
 
-    if_stat : "if" "(" expression ")" statement else
+    if_stat : "if" "(" expression ")" statement else    -> if_stat
 
-    else : "else" statement
+    else : "else" statement     -> else_stat
             |	
 
-    for_stat : "for" "(" IDENT atrib_stat ";" expression ";" IDENT atrib_stat ")" statement 
+    for_stat : "for" "(" IDENT atrib_stat ";" expression ";" IDENT atrib_stat ")" statement     -> for_stat
 
     return_stat : "return" expressionq 
 
     super_stat : "super" "(" arg_list ")" 
 
-    stat_list : statement stat_list
+    stat_list : statement stat_list     -> stat_list
             |		
 
     expression : num_expression opt_expression  //TODO
@@ -176,6 +176,7 @@ lark_grammar = Lark('''\
 class CalculateTree(Visitor):
     def __init__(self, symbol_table: SymbolTable):
         self.symbol_table = symbol_table
+        self.errors = []
 
     def __default__(self, *args):
         pass
@@ -229,6 +230,34 @@ class CalculateTree(Visitor):
         self._call_userfunc(tree, attrs)
         my_attributes = {key:value for key, value in attrs.items() if key[0] == tree.data and key[1] != '_exist'}
         return my_attributes
+
+    def for_stat(self, tree, attributes):
+        attributes[('statement', 'in_loop')] = True
+
+    def if_stat(self, tree, attributes):
+        if ('if_stat', 'in_loop') in attributes:
+            attributes[('statement', 'in_loop')] = True
+            attributes[('else_stat', 'in_loop')] = True
+
+    def else_stat(self, tree, attributes):
+        if ('else_stat', 'in_loop') in attributes:
+            attributes[('statement', 'in_loop')] = True
+
+    def statement(self, tree, attributes):
+        children = {x.data for x in tree.children if isinstance(x, Tree)}
+        tokens = {x.value for x in tree.children if isinstance(x, Token)}
+        if ('statement', 'in_loop') in attributes:
+            for child in children:
+                attributes[(child, 'in_loop')] = True
+
+        if 'break' in tokens:
+            if ('statement', 'in_loop') not in attributes:
+                self.errors.append('Break outside for structure in line {}'.format(tree.children[0].line))
+
+    def stat_list(self, tree, attributes):
+        if ('stat_list', 'in_loop') in attributes:
+            attributes[('statement', 'in_loop')] = True
+            attributes[('stat_list\'', 'in_loop')] = True
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
@@ -439,9 +468,8 @@ text_file = open(text_path, 'r')
 text = text_file.read()
 tree = lark_grammar.parse(text)
 visitor.visit(tree)
-
-three_address_code = []
-three_address_expression(visitor.eval_tree, {'+', '-', '*', '/', '%'}, three_address_code)
-for code in three_address_code:
-    print(code)
-print()
+if visitor.errors:
+    for error in visitor.errors:
+        print(error)
+else:
+    print('No errors encountered')
