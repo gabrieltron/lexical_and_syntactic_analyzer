@@ -15,6 +15,42 @@ class EvaluationTree():
     left: 'EvaluationTree' = field(default_factory=lambda: None)
     right: 'EvaluationTree' = field(default_factory=lambda: None)
 
+    def three_address_code(self):
+        if not self.left and not self.right:
+            return ['op0 = ' + self.data]
+        else:
+            code = []
+            self._three_address_expression({'+','-','/','*','%','>','>=','<','<=', '==', '!='}, code)
+            return code
+
+    def _three_address_expression(
+        self, operators: Set[str], code_list: List[str], counter: List[int] = [0]
+        ) -> str:
+        '''Create a list recursively of tree addresses code for the given EvaluationTree.
+        Args:
+            tree: Tree to be evaluated.
+            operators: operators present in the grammar, like "+" for sum.
+            code_list: List where the codes will be stored
+            counter: Count how many op have already been created
+
+        Returns:
+            The name of the created operation from this node of the tree
+        '''
+
+        if self.data in operators:
+            counter[0] += 1
+            op1 = self.left._three_address_expression(operators, code_list, counter)
+            counter[0] += 1
+            op2 = self.right._three_address_expression(operators, code_list, counter)
+            name = 'op' + str(counter[0])
+            operation = name + ' = ' + op1 + self.data + op2
+            code_list.append(operation)
+            counter[0] -= 1
+            counter[0] -= 1
+            return name
+
+        return self.data
+
 
 @dataclass
 class BaseType():
@@ -108,7 +144,7 @@ lark_grammar = Lark('''\
     stat_list : statement stat_list     -> stat_list
             |		
 
-    expression : num_expression opt_expression  //TODO
+    expression : num_expression opt_expression  -> expression
 
     expression2 : "," expression expression2 
             | 	
@@ -122,12 +158,12 @@ lark_grammar = Lark('''\
     arg_listq : "(" arg_list ")" 	
             |			
 
-    opt_expression : ">" num_expression 	
-            | "<"  num_expression        	
-            | "<=" num_expression        	
-            | ">=" num_expression       	
-            | "==" num_expression        	
-            | "!=" num_expression  
+    opt_expression : ">" num_expression -> opt_expression	
+            | "<"  num_expression       -> opt_expression     	
+            | "<=" num_expression       -> opt_expression     	
+            | ">=" num_expression       -> opt_expression    	
+            | "==" num_expression       -> opt_expression     	
+            | "!=" num_expression   -> opt_expression
             |      	
 
     opt_term : "+" term opt_term                -> opt_term
@@ -285,6 +321,24 @@ class CalculateTree(Visitor):
         symbol_table = attributes[('stat_list', 'symbol_table')]
         attributes[('statement', 'symbol_table')] = symbol_table
         attributes[('stat_list\'', 'symbol_table')] = symbol_table
+
+    def opt_expression(self, tree, attributes):
+        if not tree.children:
+            return
+
+        attributes[('opt_expression', 'tree')] = attributes[('num_expression', 'tree')]
+        attributes[('opt_expression', 'operator')] = tree.children[0].value
+
+    def expression(self, tree, attributes):
+        tree = attributes[('num_expression', 'tree')]
+        if ('opt_expression', 'tree') in attributes:
+            operator = attributes[('opt_expression', 'operator')]
+            right_tree = attributes[('opt_expression', 'tree')]
+            
+            new_tree = EvaluationTree(operator, tree, right_tree)
+            tree = new_tree
+
+        attributes[('expression', 'tree')] = tree
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
@@ -493,29 +547,6 @@ class CalculateTree(Visitor):
             symbol_table.variables[ident] = TableEntry(array)
 
 
-def three_address_expression(
-    tree : EvaluationTree, operators: Set[str], code_list: List[str], counter: List[int] = [0]
-    ) -> str:
-    '''Create a list recursively of tree addresses code for the given EvaluationTree.
-    Args:
-        tree: Tree to be evaluated.
-        operators: operators present in the grammar, like "+" for sum.
-        code_list: List where the codes will be stored
-        counter: Count how many op have already been created
-
-    Returns:
-        The name of the created operation from this node of the tree
-    '''
-
-    if tree.data in operators:
-        op1 = three_address_expression(tree.left, operators, code_list, [counter[0]+1])
-        op2 = three_address_expression(tree.right, operators, code_list, [counter[0]+1])
-        name = 'op' + str(counter[0])
-        operation = name + ' = ' + op1 + tree.data + op2
-        code_list.append(operation)
-        return name
-    
-    return tree.data
 
 
 types = {
