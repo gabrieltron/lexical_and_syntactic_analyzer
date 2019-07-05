@@ -1,4 +1,4 @@
-# João Gabriel Trombeta
+# Joao Gabriel Trombeta
 # Otto Menegasso Pires
 # Mathias
 # Wagner Braga dos Santos
@@ -121,36 +121,36 @@ lark_grammar = Lark('''\
     extra_var : "," IDENT vector extra_var  -> extra_var         // same as above
                 |                           
 
-    var_or_atrib.1 : var_decl   -> inherit_type
-            | atrib_stat	
+    var_or_atrib.1 : var_decl   -> var_or_atrib
+            | atrib_stat	-> var_or_atrib
 
-    atrib_stat : lvalue "=" expression 
+    atrib_stat : lvalue "=" expression  -> atrib_stat
 
-    print_stat : "print" expression 
+    atrib_statd : lvalue "=" expression  -> atrib_statd
 
-    read_stat : "read" IDENT lvalue 
+    print_stat.2 : "print" expression  -> print_stat
 
-    if_stat : "if" "(" expression ")" statement else    -> if_stat
+    read_stat.2 : "read" IDENT lvalue  -> read_stat
+
+    if_stat.2 : "if" "(" expression ")" statement else    -> if_stat
 
     else : "else" statement     -> else_stat
-            |	
+            |	                  -> else_stat
 
-    for_stat : "for" "(" IDENT atrib_stat ";" expression ";" IDENT atrib_stat ")" statement     -> for_stat
+    for_stat.2 : "for" "(" IDENT atrib_stat ";" expression ";" IDENT atrib_statd ")" statement     -> for_stat
 
-    return_stat : "return" expressionq 
-
-    super_stat : "super" "(" arg_list ")" 
+    return_stat.2 : "return" expressionq  -> return_stat
 
     stat_list : statement stat_list     -> stat_list
-            |		
+            |		                     -> stat_list
 
     expression : num_expression opt_expression  -> expression
 
     expression2 : "," expression expression2 
             | 	
 
-    expressionq : expression 	
-            |					 
+    expressionq : expression 	-> expressionq
+            |					 -> expressionq
 
     arg_list : expression expression2 	
             | 				
@@ -214,6 +214,8 @@ class CalculateTree(Visitor):
     def __init__(self, symbol_table: SymbolTable):
         self.symbol_table = symbol_table
         self.errors = []
+        self.last_label = 0
+        self.last_for_label = 0
 
     def __default__(self, *args):
         pass
@@ -269,26 +271,97 @@ class CalculateTree(Visitor):
         return my_attributes
 
     def for_stat(self, tree, attributes):
+        if ('for_stat', 'labels') not in attributes:
+            start_label = self.last_label
+            end_label = self.last_label + 1
+            self.last_label += 2
+            attributes[('for_stat', 'labels')] = (start_label, end_label)
+        else:
+            start_label, end_label = attributes[('for_stat', 'labels')]
+
         attributes[('statement', 'in_loop')] = True
+        attributes[('statement', 'loop_end_label')] = end_label
         
         symbol_table = attributes[('for_stat', 'symbol_table')]
         attributes[('statement', 'symbol_table')] = symbol_table
+
+        # generate code
+        code = []
+        variable = tree.children[2].value
+        index = attributes[('atrib_stat', 'index')]
+        variable += index
+
+        code.extend(attributes[('atrib_stat', 'code')])
+        code.append('{} = {}'.format(variable, code[-1].split()[0]))
+        code.append('{}:'.format(start_label))
+
+        code.extend(attributes[('statement', 'code')])
+
+        variable = tree.children[7].value
+        index = attributes[('atrib_statd', 'index')]
+        variable += index
+        code.extend(attributes[('atrib_statd', 'code')])
+        code.append('{} = {}'.format(variable, code[-1].split()[0]))
+
+        code.extend(attributes[('expression', 'code')])
+        code.append('If {} goto {}'.format(code[-1].split()[0], start_label))
+        code.append('{}:'.format(end_label))
+        attributes[('for_stat', 'code')] = code
+
 
     def if_stat(self, tree, attributes):
         if ('if_stat', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
             attributes[('else_stat', 'in_loop')] = True
 
+            attributes[('statement', 'loop_end_label')] = attributes[('if_stat', 'loop_end_label')]
+            attributes[('else_stat', 'loop_end_label')] = attributes[('if_stat', 'loop_end_label')]
+
         symbol_table = attributes[('if_stat', 'symbol_table')]
         attributes[('statement', 'symbol_table')] = symbol_table
         attributes[('else_stat', 'symbol_table')] = symbol_table
 
+        condition = attributes[('expression', 'code')]
+        statement_code = attributes[('statement', 'code')]
+        else_code = attributes[('else_stat', 'code')]
+
+        code = []
+        if else_code:
+            code.extend(condition)
+            else_label = self.last_label
+            final_label = self.last_label + 1
+            self.last_label += 2
+            code.append('If not {} goto {}'.format(condition[-1].split()[0], else_label))
+
+            code.extend(statement_code)
+            code.append('goto {}'.format(final_label))
+
+            code.append('{}:'.format(else_label))
+            code.extend(else_code)
+            code.append('{}:'.format(final_label))
+        else:
+            code.extend(condition)
+            final_label = self.last_label
+            self.last_label += 1
+            code.append('If not {} goto {}'.format(condition[-1].split()[0], final_label))
+
+            code.extend(statement_code)
+            code.append('{}:'.format(final_label))
+
+        attributes[('if_stat', 'code')] = code
+
     def else_stat(self, tree, attributes):
+        if not tree.children:
+            attributes[('else_stat', 'code')] = []
+            return
+
         if ('else_stat', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
+            attributes[('statement', 'loop_end_label')] = attributes[('else_stat', 'loop_end_label')]
 
         symbol_table = attributes[('else_stat', 'symbol_table')]
         attributes[('statement', 'symbol_table')] = symbol_table
+        attributes[('else_stat', 'code')] = attributes[('statement', 'code')]
 
     def statement(self, tree, attributes):
         children = {x.data for x in tree.children if isinstance(x, Tree)}
@@ -298,13 +371,14 @@ class CalculateTree(Visitor):
         if ('statement', 'in_loop') in attributes:
             for child in children:
                 attributes[(child, 'in_loop')] = True
+                attributes[(child, 'loop_end_label')] = attributes[('statement', 'loop_end_label')]
         if 'break' in tokens:
             if ('statement', 'in_loop') not in attributes:
                 self.errors.append('Break outside for structure in line {}'.format(tree.children[0].line))
 
         # Pass on Symbol Table
         symbol_table = attributes[('statement', 'symbol_table')]
-        if 'inherit_type' in children:
+        if 'inherit_type' or 'var_or_atrib' in children:
             for child in children:
                 attributes[(child, 'symbol_table')] = symbol_table
         else:
@@ -313,14 +387,95 @@ class CalculateTree(Visitor):
             for child in children:
                 attributes[(child, 'symbol_table')] = empty_st
 
+        # generate code
+        code = []
+        if 'break' in tokens:
+            code.append('goto {}'.format(attributes[('statement', 'loop_end_label')]))
+        elif ';' in tokens and len(tree.children) == 1:
+            pass
+        elif 'var_or_atrib' in children:
+            variable = tree.children[0].value
+            attributes[('var_or_atrib', 'og_type')] = variable
+            code = attributes[('var_or_atrib', 'code')]
+            if code:
+                index = attributes[('var_or_atrib', 'index')]
+                variable += index
+
+                code.append('{} = {}'.format(variable, code[-1].split()[0]))
+        elif 'dec' and 'inherit_type' not in children:
+            child = children.pop()
+            code = attributes[(child, 'code')]
+        attributes[('statement','code')] = code
+        self.code = code
+
+    def print_stat(self, tree, attributes):
+        expression_code = attributes[('expression', 'code')]
+        variable = expression_code[-1].split()[0]
+
+        code = expression_code
+        code.append('out {}'.format(variable))
+        attributes[('print_stat', 'code')] = code
+
+    def read_stat(self, tree, attributes):
+        variable = tree.children[0].value
+        variable += attributes[('lvalue', 'index')]
+        code = ['in {}'.format(variable)]
+        attributes[('read_stat', 'code')] = code
+
     def stat_list(self, tree, attributes):
+        if not tree.children:
+            attributes[('stat_list', 'code')] = []
+            return
+
         if ('stat_list', 'in_loop') in attributes:
             attributes[('statement', 'in_loop')] = True
             attributes[('stat_list\'', 'in_loop')] = True
 
+            attributes[('statement', 'loop_end_label')] = attributes[('stat_list', 'loop_end_label')]
+            attributes[('stat_list\'', 'loop_end_label')] = attributes[('stat_list', 'loop_end_label')]
+
         symbol_table = attributes[('stat_list', 'symbol_table')]
         attributes[('statement', 'symbol_table')] = symbol_table
         attributes[('stat_list\'', 'symbol_table')] = symbol_table
+
+        code = attributes[('statement', 'code')]
+        code.extend(attributes[('stat_list\'', 'code')])
+        attributes[('stat_list', 'code')] = code
+
+    def return_stat(self, tree, attributes):
+        code = attributes[('expressionq', 'code')]
+        code.append('goto end')
+        attributes[('return_stat', 'code')] = code
+
+    def atrib_stat(self, tree, attributes):
+        attributes[('atrib_stat', 'index')] = attributes[('lvalue', 'index')]
+        attributes[('atrib_stat', 'code')] = attributes[('expression', 'code')]
+
+    def var_or_atrib(self, tree, attributes):
+        if tree.children[0].data == 'var_decl':
+            attributes[('var_decl', 'og_type')] = attributes[('var_or_atrib', 'og_type')]
+
+            symbol_table = attributes[('var_or_atrib', 'symbol_table')]
+            attributes[('var_decl', 'symbol_table')] = symbol_table
+
+            attributes[('var_decl', 'counter')] = 0
+            attributes[('var_or_atrib', 'code')] = []
+
+        else:
+            print('pei')
+            attributes[('var_or_atrib', 'index')] = attributes[('atrib_stat', 'index')]
+            attributes[('var_or_atrib', 'code')] = attributes[('atrib_stat', 'code')]
+
+    def atrib_statd(self, tree, attributes):
+        attributes[('atrib_statd', 'index')] = attributes[('lvalue', 'index')]
+        attributes[('atrib_statd', 'code')] = attributes[('expression', 'code')]
+
+    def expressionq(self, tree, attributes):
+        if not tree.children:
+            attributes[('expressionq', 'code')] = []
+            return
+
+        attributes[('expressionq', 'code')] = attributes[('expression', 'code')]
 
     def opt_expression(self, tree, attributes):
         if not tree.children:
@@ -339,6 +494,7 @@ class CalculateTree(Visitor):
             tree = new_tree
 
         attributes[('expression', 'tree')] = tree
+        attributes[('expression', 'code')] = tree.three_address_code()
 
     def opt_term(self, tree, attributes):#ok
         if not tree.children:
@@ -552,7 +708,8 @@ class CalculateTree(Visitor):
 types = {
     'int': BaseType('int', 4),
     'char': BaseType('char', 1),
-    'string': BaseType('string', 0)
+    'string': BaseType('string', 0),
+    'media': BaseType('media', 32)
     }
 symbol_table = SymbolTable(types)
 visitor = CalculateTree(symbol_table)
@@ -567,3 +724,7 @@ if visitor.errors:
         print(error)
 else:
     print('No errors encountered')
+
+    visitor.code.append('end:')
+    for line in visitor.code:
+        print(line)
