@@ -417,7 +417,7 @@ class CalculateTree(Visitor):
         attributes[('print_stat', 'code')] = code
 
     def read_stat(self, tree, attributes):
-        variable = tree.children[0].value
+        variable = tree.children[1].value
         variable += attributes[('lvalue', 'index')]
         code = ['in {}'.format(variable)]
         attributes[('read_stat', 'code')] = code
@@ -462,7 +462,6 @@ class CalculateTree(Visitor):
             attributes[('var_or_atrib', 'code')] = []
 
         else:
-            print('pei')
             attributes[('var_or_atrib', 'index')] = attributes[('atrib_stat', 'index')]
             attributes[('var_or_atrib', 'code')] = attributes[('atrib_stat', 'code')]
 
@@ -718,7 +717,15 @@ text_path = input()
 text_file = open(text_path, 'r')
 text = text_file.read()
 tree = lark_grammar.parse(text)
-visitor.visit(tree, {('statement', 'symbol_table') : symbol_table})
+try:
+    visitor.visit(tree, {('statement', 'symbol_table') : symbol_table})
+except Exception as e:
+    if visitor.errors:
+        for error in visitor.errors:
+            print(error)
+    else:
+        raise e
+
 if visitor.errors:
     for error in visitor.errors:
         print(error)
